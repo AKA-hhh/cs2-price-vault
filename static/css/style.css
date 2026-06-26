@@ -669,6 +669,9 @@ body {
 
 .pf-input-num { width: 110px; padding: 8px 10px; font-size: var(--text-sm); font-family: var(--font-mono); background: var(--bg-inset); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius); outline: none; color-scheme: dark; }
 .pf-input-num:focus { border-color: var(--accent); background: var(--bg-surface); }
+.pf-input-num::-webkit-inner-spin-button,
+.pf-input-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.pf-input-num { -moz-appearance: textfield; }
 .pf-input-qty { width: 66px; }
 .btn-pf-add { padding: 8px 14px; font-size: var(--text-xs); width: auto; margin: 0; }
 
@@ -699,6 +702,9 @@ body {
 .pf-edit-name { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
 .pf-edit-input { flex: 1; padding: 8px 12px; font-size: var(--text-sm); font-family: var(--font-mono); border: 1px solid var(--border-default); border-radius: var(--radius); background: var(--bg-inset); color: var(--text-primary); outline: none; color-scheme: dark; }
 .pf-edit-input:focus { border-color: var(--accent); }
+.pf-edit-input::-webkit-inner-spin-button,
+.pf-edit-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.pf-edit-input { -moz-appearance: textfield; }
 .pf-edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
 .confirm-actions { display: flex; justify-content: center; gap: 12px; }
 .confirm-actions button {
