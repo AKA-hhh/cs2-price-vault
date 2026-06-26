@@ -26,6 +26,7 @@ from core.api_client import get_item_price_history, get_item_detail, get_market_
 from core.indicators import compute_indicators
 from core.recommendation import generate_recommendation
 from core.ai_analysis import get_ai_analysis, chat_with_context
+from core.prompts import prompt_mgr
 from core.visualization import plot_analysis
 from core.utils import extract_wear_level, sanitize_filename
 
@@ -176,12 +177,7 @@ def _build_chat_messages(df, item_name, period_days, recommendation, ai_text):
     from core.ai_analysis import _build_ai_prompt
     prompt = _build_ai_prompt(df, item_name, period_days, recommendation)
     return [
-        {"role": "system", "content": (
-            "你是一位顶级的CS2/CSGO饰品交易分析师，拥有多年的游戏饰品投资和操盘经验。"
-            "你精通技术分析、市场心理学和风险管理，能够从多维度、多时间框架综合分析饰品价格走势。"
-            "当用户追问时，请基于之前的分析数据给出具体、可操作的回答。"
-            "回答必须使用中文，条理清晰，直接给出结论。"
-        )},
+        {"role": "system", "content": prompt_mgr.get("chat_system")},
         {"role": "user", "content": prompt},
         {"role": "assistant", "content": ai_text},
     ]
@@ -481,23 +477,17 @@ def api_portfolio_advice():
     pnl = current_value - total_cost
     pnl_pct = (pnl / total_cost * 100) if total_cost > 0 else 0
 
-    prompt = f"""你是一位 CS2 饰品投资顾问。用户持有以下饰品，请给出操作建议：
-
-饰品：{holding.get('name', 'ID:'+item_id)}
-买入均价：¥{buy_price:.2f}
-持有数量：{quantity} 件
-投入成本：¥{total_cost:.2f}
-当前市价（悠悠有品）：¥{current_price:.2f}
-当前市值：¥{current_value:.2f}
-浮动盈亏：¥{pnl:+.2f} ({pnl_pct:+.1f}%)
-
-请从以下角度分析并给出建议：
-1. 当前盈亏状况评估
-2. 建议操作（持有/加仓/减仓/清仓）
-3. 关键支撑位和压力位
-4. 风险提示
-
-请用中文回答，简洁专业，不超过 500 字。"""
+    template = prompt_mgr.get("portfolio_advice")
+    prompt = template.format(
+        name=holding.get('name', 'ID:'+item_id),
+        buy_price=buy_price,
+        quantity=quantity,
+        total_cost=total_cost,
+        current_price=current_price,
+        current_value=current_value,
+        pnl=pnl,
+        pnl_pct=pnl_pct,
+    )
 
     from core.config import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, AI_TIMEOUT
     if not DEEPSEEK_API_KEY:
@@ -542,6 +532,10 @@ def api_analyze():
     kb_entries = _load_kb()
     relevant_kb = match_knowledge(item_name, kb_entries) if kb_entries else []
     ai_ok, ai_text = get_ai_analysis(df, item_name, period_days, recommendation, relevant_kb)
+    if ai_ok is None:
+        print(f"  AI 分析失败: {ai_text}")
+    elif ai_ok is False:
+        print(f"  AI 分析跳过: {ai_text[:80]}...")
 
     # 图表
     plot_analysis(df, item_name, period_days, recommendation, show=False)
@@ -1351,6 +1345,61 @@ def api_knowledge_delete(entry_id):
     _save_kb(kb)
     return jsonify({"ok": True})
 
+
+# ═══════════════════ 提示词管理 ═══════════════════
+
+@app.route("/api/prompts", methods=["GET"])
+def api_prompts_get():
+    """获取所有提示词数据"""
+    return jsonify(prompt_mgr.get_all())
+
+
+@app.route("/api/prompts/<key>/active", methods=["PUT"])
+def api_prompts_set_active(key):
+    """切换当前使用的模板"""
+    data = request.get_json(force=True)
+    tid = (data.get("id") or "").strip()
+    if not tid:
+        return jsonify({"error": "缺少模板 id"}), 400
+    ok = prompt_mgr.set_active(key, tid)
+    if not ok:
+        return jsonify({"error": "模板不存在"}), 404
+    return jsonify({"ok": True})
+
+
+@app.route("/api/prompts/<key>/templates", methods=["POST"])
+def api_prompts_add_template(key):
+    """新建自定义模板"""
+    data = request.get_json(force=True)
+    name = (data.get("name") or "").strip()
+    text = (data.get("text") or "").strip()
+    if not name or not text:
+        return jsonify({"error": "名称和内容不能为空"}), 400
+    tid = prompt_mgr.add_template(key, name, text)
+    if tid is None:
+        return jsonify({"error": "未知的提示词 key"}), 404
+    return jsonify({"id": tid, "name": name})
+
+
+@app.route("/api/prompts/<key>/templates/<tid>", methods=["PUT"])
+def api_prompts_update_template(key, tid):
+    """更新模板名称/内容"""
+    data = request.get_json(force=True)
+    name = data.get("name", "").strip() or None
+    text = data.get("text", "").strip() or None
+    ok = prompt_mgr.update_template(key, tid, name=name, text=text)
+    if not ok:
+        return jsonify({"error": "模板不存在"}), 404
+    return jsonify({"ok": True})
+
+
+@app.route("/api/prompts/<key>/templates/<tid>", methods=["DELETE"])
+def api_prompts_delete_template(key, tid):
+    """删除自定义模板"""
+    ok = prompt_mgr.delete_template(key, tid)
+    if not ok:
+        return jsonify({"error": "无法删除（不存在或为内置模板）"}), 400
+    return jsonify({"ok": True})
 
 # ══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
