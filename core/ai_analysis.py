@@ -11,7 +11,7 @@ from .config import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_CHAT_MODEL, AI_TI
 AI_MAX_RETRIES = 2  # 超时/网络错误时最多重试 2 次
 
 
-def _build_ai_prompt(df, item_name, period_days, recommendation):
+def _build_ai_prompt(df, item_name, period_days, recommendation, knowledge=None):
     """构建发送给 DeepSeek AI 的全面分析提示词"""
     last = df.iloc[-1]
     first = df.iloc[0]
@@ -160,26 +160,42 @@ def _build_ai_prompt(df, item_name, period_days, recommendation):
 
 11. 止损止盈与仓位 — 如果现在入场，建议的止损价和止盈价分别是多少？建议的仓位比例？盈亏比是否合理？
 
-12. 风险与黑天鹅 — 有哪些潜在的重大风险？（如CS2游戏更新、市场整体转向、该武器皮肤热度变化、大商出货等）
+12. 风险与黑天鹅 — 有哪些潜在的重大风险？（如CS2游戏更新、市场整体转向、该武器皮肤热度变化、大商出货等）"""
+
+    # 附加知识库参考
+    if knowledge:
+        kb_text = "\n".join(
+            f"  - [{e.get('title', '')}] {e.get('content', '')[:300]}"
+            for e in knowledge[:5]
+        )
+        prompt += f"""
+
+【参考CS2事件库（请选择性参考以下历史事件与规则，如与当前分析相关则纳入考量）】
+{kb_text}
+"""
+
+    prompt += """
 
 请用中文输出，控制在800字以内，条理清晰，编号对应维度，给出具体可操作的建议。"""
 
     return prompt
 
+    return prompt
 
-def get_ai_analysis(df, item_name, period_days, recommendation):
+
+def get_ai_analysis(df, item_name, period_days, recommendation, knowledge=None):
     """调用 DeepSeek API 进行多维度 AI 技术分析
+
+    参数:
+      knowledge: 可选，知识库条目列表，用于注入参考上下文
 
     返回:
       (success: bool | None, text: str)
-        success=True  → AI 分析成功, text 为分析内容
-        success=False → 未配置 API key, text 为提示信息
-        success=None  → 调用失败, text 为错误信息
     """
     if not DEEPSEEK_API_KEY:
         return False, "未配置 DEEPSEEK_API_KEY，跳过AI分析。\n\n请在 .env 文件中添加:\nDEEPSEEK_API_KEY=your_key_here"
 
-    prompt = _build_ai_prompt(df, item_name, period_days, recommendation)
+    prompt = _build_ai_prompt(df, item_name, period_days, recommendation, knowledge)
 
     url = "https://api.deepseek.com/chat/completions"
     headers = {

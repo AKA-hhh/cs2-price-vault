@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:opsz,wght@14..32,400..600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/style.css?v=20250626j">
+<link rel="stylesheet" href="/static/css/style.css?v=20250626k">
 </head>
 <body>
 
@@ -45,6 +45,9 @@
         <button id="btn-portfolio-page" class="btn-dash" title="持仓管理">
           <span class="btn-dash-icon">&#9824;</span> 持仓
         </button>
+        <button id="btn-kb-page" class="btn-dash" title="cs2事件">
+          <span class="btn-dash-icon">&#9734;</span> 事件
+        </button>
       </nav>
 
       <div class="search-input-wrap">
@@ -52,8 +55,8 @@
         <input type="text" id="search-input"
                placeholder="搜索饰品名称…"
                autocomplete="off">
+        <div id="search-results" class="search-dropdown"></div>
       </div>
-      <div id="search-results" class="search-dropdown"></div>
 
       <div id="period-picker" class="period-picker">
         <button data-days="7">7D</button>
@@ -260,7 +263,6 @@
         </div>
       </div>
 
-      <div id="pf-toast" class="pf-toast hidden">✓ 已保存</div>
       <div id="pf-edit-modal" class="pf-modal hidden">
         <div class="pf-modal-overlay"></div>
         <div class="pf-modal-content panel" style="max-width:420px;">
@@ -291,6 +293,73 @@
       </div>
     </div>
 
+    <!-- ═══════════════ 知识库 ═══════════════ -->
+    <div id="kb-page" class="kb-page hidden">
+      <div class="kb-header">
+        <h2 class="kb-title">&#9734; cs2事件</h2>
+        <div class="kb-search-wrap">
+          <input type="text" id="kb-search" class="kb-search-input" placeholder="搜索cs2事件…" autocomplete="off">
+        </div>
+        <button id="btn-kb-add" class="btn-fire" style="padding:7px 16px;font-size:0.75rem;flex-shrink:0;width:auto;margin-top:0;">+ 新增</button>
+      </div>
+      <div class="kb-grid" id="kb-list">
+        <div class="kb-empty">暂无条目，点击上方按钮添加</div>
+      </div>
+      <div class="kb-pagination" id="kb-pagination">
+        <span class="kb-total" id="kb-total">共 0 条</span>
+        <div class="kb-pagination-center">
+          <button id="kb-prev-btn" class="idmap-page-btn" disabled>&lsaquo;</button>
+          <span id="kb-page-btns" class="kb-page-btns"></span>
+          <button id="kb-next-btn" class="idmap-page-btn">&rsaquo;</button>
+          <span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:8px;">前往</span>
+          <input type="number" id="kb-jump-input" class="idmap-jump-input" min="1" placeholder="">
+          <span style="font-size:0.7rem;color:var(--text-tertiary);">页</span>
+        </div>
+        <span class="kb-total-spacer"></span>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 知识库查看弹窗 ═══════════════ -->
+    <div id="kb-view-modal" class="pf-modal hidden">
+      <div class="pf-modal-overlay"></div>
+      <div class="pf-modal-content panel" style="max-width:600px;">
+        <div class="panel-header">
+          <h3 id="kb-view-title">--</h3>
+          <button id="kb-view-close" class="btn-close">&times;</button>
+        </div>
+        <div class="kb-view-body">
+          <div class="kb-view-tags" id="kb-view-tags"></div>
+          <div class="kb-view-content" id="kb-view-content"></div>
+          <div class="kb-view-time" id="kb-view-time"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 知识库编辑弹窗 ═══════════════ -->
+    <div id="kb-modal" class="pf-modal hidden">
+      <div class="pf-modal-overlay"></div>
+      <div class="pf-modal-content panel" style="max-width:520px;">
+        <div class="panel-header">
+          <h3 id="kb-modal-title">新增知识条目</h3>
+          <button id="kb-modal-close" class="btn-close">&times;</button>
+        </div>
+        <div class="kb-modal-body">
+          <label class="pf-edit-label">标题</label>
+          <input type="text" id="kb-edit-title" class="pf-edit-input" placeholder="例如：2024年5月武器箱机制调整">
+          <label class="pf-edit-label">事件日期</label>
+          <div class="kb-date-wrap">
+            <input type="date" id="kb-edit-date" class="kb-date-input">
+          </div>
+          <label class="pf-edit-label">内容（支持分点分行）</label>
+          <textarea id="kb-edit-content" class="kb-edit-textarea" rows="10" placeholder="1. xxx&#10;2. xxx"></textarea>
+          <label class="pf-edit-label">标签（逗号分隔）</label>
+          <input type="text" id="kb-edit-tags" class="pf-edit-input" placeholder="更新,武器箱,机制">
+          <span id="kb-edit-msg" class="settings-msg" style="min-height:18px;"></span>
+          <button id="btn-kb-save" class="btn-fire" style="padding:8px 0;width:100%;">保存</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── 加载 / 错误 ── -->
     <div id="loading-screen" class="loading-screen hidden">
       <div class="loader-card">
@@ -310,7 +379,7 @@
         </div>
       </div>
     </div>
-    <div id="error-toast" class="toast error-toast"></div>
+    <div id="error-toast" class="toast error-toast hidden"></div>
 
     <!-- ── 分析结果 ── -->
     <div id="results-container" class="hidden">
@@ -540,7 +609,10 @@
   </div>
 </div>
 
-<script src="/static/js/app.js?v=20250626j"></script>
+<!-- Toast -->
+<div id="pf-toast" class="pf-toast hidden">✓ 已保存</div>
+
+<script src="/static/js/app.js?v=20250626k"></script>
   <!-- ═══════════════════════════════
     CONFIRM DIALOG
     ═══════════════════════════════ -->

@@ -538,7 +538,10 @@ def api_analyze():
     df = compute_indicators(df)
     recommendation = generate_recommendation(df)
     detail = get_item_detail(int(item_id)) or {}
-    ai_ok, ai_text = get_ai_analysis(df, item_name, period_days, recommendation)
+    # 匹配知识库，注入 AI 分析
+    kb_entries = _load_kb()
+    relevant_kb = match_knowledge(item_name, kb_entries) if kb_entries else []
+    ai_ok, ai_text = get_ai_analysis(df, item_name, period_days, recommendation, relevant_kb)
 
     # 图表
     plot_analysis(df, item_name, period_days, recommendation, show=False)
@@ -1214,6 +1217,139 @@ def api_id_map_upload():
         "valid_entries": valid,
         "filename": file.filename,
     })
+
+
+# ═══════════════════ 知识库 ═══════════════════
+
+KB_FILE = os.path.join(BASE_DIR, "knowledge_base.json")
+
+
+def _load_kb():
+    if not os.path.exists(KB_FILE):
+        return []
+    try:
+        with open(KB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return []
+
+
+def _save_kb(kb):
+    with open(KB_FILE, "w", encoding="utf-8") as f:
+        json.dump(kb, f, ensure_ascii=False, indent=2)
+
+
+def match_knowledge(item_name, kb_entries):
+    """从知识库匹配与饰品相关的条目"""
+    import re
+    keywords = set()
+    clean = re.sub(r'[（(][^)）]*[)）]', '', item_name)
+    clean = re.sub(r'[★\s]', '', clean)
+    for part in clean.split("|"):
+        part = part.strip()
+        if len(part) >= 2:
+            keywords.add(part.lower())
+
+    scored = []
+    for entry in kb_entries:
+        score = 0
+        text = (entry.get("title", "") + " " + entry.get("content", "") +
+                " " + " ".join(entry.get("tags", []))).lower()
+        for kw in keywords:
+            if kw in text:
+                score += 1
+        if score > 0:
+            scored.append((score, entry))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [e for _, e in scored]
+
+
+@app.route("/api/knowledge", methods=["GET"])
+def api_knowledge_list():
+    q = (request.args.get("q") or "").strip().lower()
+    limit = request.args.get("limit", type=int)
+    offset = request.args.get("offset", type=int, default=0)
+    kb = _load_kb()
+    if q:
+        kb = [e for e in kb if q in e.get("title", "").lower()
+              or q in e.get("content", "").lower()
+              or any(q in t.lower() for t in e.get("tags", []))]
+    def _kb_sort_key(e):
+        ed = e.get("event_date")
+        if ed:
+            try:
+                return time.mktime(time.strptime(ed, "%Y-%m-%d"))
+            except Exception:
+                pass
+        return e.get("updated_at", e.get("created_at", 0))
+    kb.sort(key=_kb_sort_key, reverse=True)
+    total = len(kb)
+    if limit:
+        kb = kb[offset:offset + limit]
+    return jsonify({"items": kb, "total": total})
+
+
+@app.route("/api/knowledge", methods=["POST"])
+def api_knowledge_add():
+    data = request.get_json(force=True)
+    title = (data.get("title") or "").strip()
+    content = (data.get("content") or "").strip()
+    if not title or not content:
+        return jsonify({"error": "标题和内容不能为空"}), 400
+    tags = data.get("tags") or []
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+    now = time.time()
+    event_date = (data.get("event_date") or "").strip() or None
+    entry = {
+        "id": uuid.uuid4().hex[:8],
+        "title": title,
+        "content": content,
+        "tags": tags,
+        "event_date": event_date,
+        "created_at": now,
+        "updated_at": now,
+    }
+    kb = _load_kb()
+    kb.append(entry)
+    _save_kb(kb)
+    return jsonify(entry)
+
+
+@app.route("/api/knowledge/<entry_id>", methods=["PUT"])
+def api_knowledge_update(entry_id):
+    data = request.get_json(force=True)
+    kb = _load_kb()
+    entry = next((e for e in kb if e.get("id") == entry_id), None)
+    if not entry:
+        return jsonify({"error": "条目不存在"}), 404
+    title = (data.get("title") or "").strip()
+    content = (data.get("content") or "").strip()
+    if not title or not content:
+        return jsonify({"error": "标题和内容不能为空"}), 400
+    entry["title"] = title
+    entry["content"] = content
+    tags = data.get("tags") or []
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+    entry["tags"] = tags
+    event_date = (data.get("event_date") or "").strip() or None
+    if event_date is not None:
+        entry["event_date"] = event_date
+    elif "event_date" in data and not data["event_date"]:
+        entry.pop("event_date", None)
+    entry["updated_at"] = time.time()
+    _save_kb(kb)
+    return jsonify(entry)
+
+
+@app.route("/api/knowledge/<entry_id>", methods=["DELETE"])
+def api_knowledge_delete(entry_id):
+    kb = _load_kb()
+    kb = [e for e in kb if e.get("id") != entry_id]
+    _save_kb(kb)
+    return jsonify({"ok": True})
 
 
 # ══════════════════════════════════════════════════════════════
