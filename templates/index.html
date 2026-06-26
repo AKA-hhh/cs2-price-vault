@@ -530,9 +530,12 @@
       </table>
     </div>
     <div class="idmap-modal-footer">
-      <button id="idmap-prev-btn" class="btn-fire" style="padding:5px 16px;font-size:0.72rem;" disabled>上一页</button>
-      <span id="idmap-page-info" style="font-size:0.72rem;color:var(--text-secondary);white-space:nowrap;">-</span>
-      <button id="idmap-next-btn" class="btn-fire" style="padding:5px 16px;font-size:0.72rem;">下一页</button>
+      <button id="idmap-prev-btn" class="idmap-page-btn" disabled>&lsaquo;</button>
+      <span id="idmap-page-btns" class="idmap-page-btns"></span>
+      <button id="idmap-next-btn" class="idmap-page-btn">&rsaquo;</button>
+      <span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:8px;">前往</span>
+      <input type="number" id="idmap-jump-input" class="idmap-jump-input" min="1" placeholder="">
+      <span style="font-size:0.7rem;color:var(--text-tertiary);">页</span>
     </div>
   </div>
 </div>

@@ -1063,11 +1063,13 @@ const $idmapTableBody    = document.getElementById("idmap-table-body");
 const $idmapPageInfo     = document.getElementById("idmap-page-info");
 const $idmapPrevBtn      = document.getElementById("idmap-prev-btn");
 const $idmapNextBtn      = document.getElementById("idmap-next-btn");
+const $idmapPageBtns     = document.getElementById("idmap-page-btns");
 
 let idmapPreviewOffset = 0;
 const IDMAP_PAGE_SIZE = 30;
 let idmapPreviewTotal = 0;
 let idmapSearchTimer = null;
+let idmapCurPage = 1;
 
 function closeIdmapModal() {
   $idmapModal.classList.add("hidden");
@@ -1077,6 +1079,7 @@ function openIdmapModal() {
   $idmapModal.classList.remove("hidden");
   $idmapSearchInput.value = "";
   idmapPreviewOffset = 0;
+  idmapCurPage = 1;
   loadIdmapPreview();
 }
 
@@ -1091,6 +1094,7 @@ $idmapSearchInput.addEventListener("input", function() {
   clearTimeout(idmapSearchTimer);
   idmapSearchTimer = setTimeout(() => {
     idmapPreviewOffset = 0;
+    idmapCurPage = 1;
     loadIdmapPreview();
   }, 250);
 });
@@ -1118,11 +1122,12 @@ async function loadIdmapPreview() {
       $idmapModalInfo.textContent = `共 ${idmapPreviewTotal.toLocaleString()} 条，第 ${start}-${end} 条`;
     }
 
-    const pages = Math.ceil(idmapPreviewTotal / IDMAP_PAGE_SIZE) || 1;
-    $idmapPageInfo.textContent = `${Math.floor(idmapPreviewOffset / IDMAP_PAGE_SIZE) + 1} / ${pages}`;
+    idmapCurPage = Math.floor(idmapPreviewOffset / IDMAP_PAGE_SIZE) + 1;
+    const totalPages = Math.ceil(idmapPreviewTotal / IDMAP_PAGE_SIZE) || 1;
 
-    $idmapPrevBtn.disabled = idmapPreviewOffset <= 0;
-    $idmapNextBtn.disabled = idmapPreviewOffset + IDMAP_PAGE_SIZE >= idmapPreviewTotal;
+    renderPageButtons(idmapCurPage, totalPages);
+    $idmapPrevBtn.disabled = idmapCurPage <= 1;
+    $idmapNextBtn.disabled = idmapCurPage >= totalPages;
 
     $idmapTableBody.innerHTML = (d.items || []).map(item =>
       `<tr><td>${item.id}</td><td>${escHtml(item.name || "")}</td><td class="market-name">${escHtml(item.market_hash_name || "")}</td></tr>`
@@ -1137,17 +1142,51 @@ function escHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-$idmapPrevBtn.addEventListener("click", () => {
-  if (idmapPreviewOffset >= IDMAP_PAGE_SIZE) {
-    idmapPreviewOffset -= IDMAP_PAGE_SIZE;
-    loadIdmapPreview();
-  }
-});
+function goToPage(page) {
+  const totalPages = Math.ceil(idmapPreviewTotal / IDMAP_PAGE_SIZE) || 1;
+  if (page < 1 || page > totalPages) return;
+  idmapCurPage = page;
+  idmapPreviewOffset = (page - 1) * IDMAP_PAGE_SIZE;
+  loadIdmapPreview();
+}
 
-$idmapNextBtn.addEventListener("click", () => {
-  if (idmapPreviewOffset + IDMAP_PAGE_SIZE < idmapPreviewTotal) {
-    idmapPreviewOffset += IDMAP_PAGE_SIZE;
-    loadIdmapPreview();
+function renderPageButtons(cur, total) {
+  const btns = [];
+  const addNum = (n) => btns.push(`<button class="idmap-page-num${n === cur ? ' active' : ''}" data-page="${n}">${n}</button>`);
+  const addEllipsis = () => btns.push(`<span class="idmap-page-ellipsis">&hellip;</span>`);
+
+  if (total <= 9) {
+    for (let i = 1; i <= total; i++) addNum(i);
+  } else {
+    addNum(1);
+    if (cur > 4) addEllipsis();
+    for (let i = Math.max(2, cur - 2); i <= Math.min(total - 1, cur + 2); i++) addNum(i);
+    if (cur < total - 3) addEllipsis();
+    addNum(total);
+  }
+
+  $idmapPageBtns.innerHTML = btns.join("");
+
+  // Delegate click on page number buttons
+  $idmapPageBtns.querySelectorAll(".idmap-page-num").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const p = parseInt(this.dataset.page, 10);
+      if (p !== cur) goToPage(p);
+    });
+  });
+}
+
+$idmapPrevBtn.addEventListener("click", () => goToPage(idmapCurPage - 1));
+$idmapNextBtn.addEventListener("click", () => goToPage(idmapCurPage + 1));
+
+// ── Page jump ──
+const $idmapJumpInput = document.getElementById("idmap-jump-input");
+
+$idmapJumpInput.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    const page = parseInt(this.value, 10);
+    goToPage(page);
+    this.value = "";
   }
 });
 
