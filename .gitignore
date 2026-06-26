@@ -18,11 +18,13 @@ build/
 venv/
 
 # ── User data (runtime artifacts) ──
+.claude
 history/
 analysis_output/
 portfolio.json
 watchlist.json
 settings.json
+CLAUDE.md
 
 # ── OS ──
 .DS_Store
