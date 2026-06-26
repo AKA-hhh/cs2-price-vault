@@ -14,7 +14,8 @@
 
 ## 功能
 
-- **多维度技术分析** — 规则引擎 (评分制) + DeepSeek AI 12 维度深度分析
+- **多维度技术分析** — 规则引擎 (评分制) + DeepSeek AI 多维度深度分析
+- **提示词管理** — 4 类 AI 提示词可自定义模板，多模板切换，即时生效
 - **K线图可视化** — 价格走势 + 布林带 + RSI + MACD + KDJ + 在售数量
 - **多轮对话追问** — 基于分析结果与 AI 深度讨论，支持 SSE 流式输出
 - **自选列表** — 实时刷新价格、涨跌幅、在售数量
@@ -90,27 +91,35 @@ python app.py
 
 点击「持仓」标签，录入买入价格和数量。系统自动计算浮动盈亏，并可为每个持仓请求 AI 操作建议。
 
+### 提示词模板
+
+点击「提示词」标签，可对 4 类 AI 提示词（分析系统角色、分析维度指令、追问系统角色、持仓建议模板）进行模板管理：每类可创建多个命名模板，通过下拉选择器即时切换，AI 分析/追问将使用当前激活的模板。
+
 ## 目录结构
 
 ```
 cs2-price-vault/
-├── app.py                  # Flask 主应用 (所有路由)
+├── app.py                  # Flask 主应用 (33 个路由)
 ├── core/
 │   ├── config.py           # 配置加载 (.env)
 │   ├── api_client.py       # csqaq.com API 封装
 │   ├── indicators.py       # 技术指标计算
 │   ├── recommendation.py   # 规则引擎 (-100~100 评分)
 │   ├── ai_analysis.py      # DeepSeek AI 分析 & 多轮对话
+│   ├── prompts.py          # 提示词管理器 (多模板+JSON持久化)
 │   ├── visualization.py    # matplotlib 图表绘制
 │   ├── id_map.py           # 饰品名称模糊搜索
 │   └── utils.py            # 工具函数
 ├── templates/
 │   └── index.html          # 单页应用模板
 ├── static/
-│   ├── js/app.js           # 前端逻辑
-│   └── css/style.css       # 设计系统
+│   ├── js/app.js           # 前端逻辑 (搜索/分析/追问/自选/持仓/提示词管理)
+│   └── css/style.css       # 设计系统 (暗/亮主题 + 响应式)
 ├── data/
 │   └── 饰品id_20260423.json # 饰品 ID 映射表
+├── prompts.json            # 提示词模板持久化 (自动生成)
+├── watchlist.json          # 自选列表持久化
+├── portfolio.json          # 持仓列表持久化
 ├── .env.example            # 环境变量模板
 ├── requirements.txt        # Python 依赖
 └── LICENSE
