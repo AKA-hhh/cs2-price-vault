@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS2 饰品分析终端</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:opsz,wght@14..32,400..600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css?v=20250626j">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+  HEADER
+  ════════════════════════════════════════ -->
+<header id="top-bar">
+  <div class="brand">
+    <span class="brand-icon">&#9670;</span>
+    <span class="brand-text">CS2<span class="brand-dim">/vault</span></span>
+  </div>
+  <div class="header-actions">
+    <span id="header-status" class="status-dot offline" title="连接状态">&#9679;</span>
+    <button id="btn-settings" class="btn-icon" title="设置">&#9881;</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════
+  LAYOUT: 侧边栏 + 主区域
+  ═══════════════════════════════════ -->
+<div id="app-layout">
+
+  <!-- ═════════════════════════════
+    SIDEBAR
+    ═════════════════════════════ -->
+  <aside id="sidebar">
+    <div id="sidebar-search-area">
+      <nav class="nav-btns">
+        <button id="btn-dashboard" class="btn-dash active" title="大盘仪表盘">
+          <span class="btn-dash-icon">&#9632;</span> 大盘
+        </button>
+        <button id="btn-watchlist-page" class="btn-dash" title="自选列表">
+          <span class="btn-dash-icon">&#9733;</span> 自选
+        </button>
+        <button id="btn-portfolio-page" class="btn-dash" title="持仓管理">
+          <span class="btn-dash-icon">&#9824;</span> 持仓
+        </button>
+      </nav>
+
+      <div class="search-input-wrap">
+        <span class="search-icon">&#9906;</span>
+        <input type="text" id="search-input"
+               placeholder="搜索饰品名称…"
+               autocomplete="off">
+      </div>
+      <div id="search-results" class="search-dropdown"></div>
+
+      <div id="period-picker" class="period-picker">
+        <button data-days="7">7D</button>
+        <button data-days="30" class="active">1M</button>
+        <button data-days="90">3M</button>
+        <button data-days="180">6M</button>
+        <button data-days="365">1Y</button>
+        <button id="btn-custom-days" data-days="0">输入</button>
+        <input type="number" id="input-custom-days" class="custom-days-input"
+               placeholder="天" min="1" max="730" style="display:none;">
+      </div>
+
+      <button id="btn-analyze" class="btn-fire" disabled>
+        <span class="btn-fire-icon">&#9654;</span> 开始分析
+      </button>
+    </div>
+
+    <div id="history-section">
+      <div class="section-header">
+        <span class="section-title">分析历史</span>
+        <span id="history-count" class="count-badge">0</span>
+      </div>
+      <div id="history-list" class="history-list">
+        <div class="history-empty">暂无历史记录</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═════════════════════════════
+    MAIN
+    ═════════════════════════════ -->
+  <main id="main-area">
+
+    <!-- ── 大盘仪表盘 ── -->
+    <div id="dashboard" class="dashboard">
+      <div class="dash-title-row">
+        <h2 class="dash-title">大盘仪表盘</h2>
+        <span class="dash-live">LIVE</span>
+        <button id="btn-refresh" class="btn-icon" title="刷新数据">&#8635;</button>
+      </div>
+
+      <div class="dash-row dash-cards" id="dash-cards">
+        <div class="dash-card">
+          <div class="dc-label">饰品指数</div>
+          <div class="dc-value" id="dc-index">--</div>
+          <div class="dc-sub" id="dc-index-chg">--</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-label">市场情绪</div>
+          <div class="dc-value" id="dc-sentiment">--</div>
+          <div class="dc-sub" id="dc-sentiment-lvl">--</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-label">Steam 在线</div>
+          <div class="dc-value" id="dc-online">--</div>
+          <div class="dc-sub" id="dc-online-chg">--</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-label">今日涨跌</div>
+          <div class="dc-value" id="dc-rate">--</div>
+          <div class="dc-sub" id="dc-rate-sub">--</div>
+        </div>
+      </div>
+
+      <div class="dash-row dash-2col">
+        <section class="panel dash-panel">
+          <div class="panel-header">
+            <span class="panel-dot lapis"></span>
+            <h2 class="panel-title">饰品指数</h2>
+            <span class="panel-subtitle">TOP 12</span>
+          </div>
+          <div class="panel-body" id="dash-indices"></div>
+        </section>
+        <section class="panel dash-panel">
+          <div class="panel-header">
+            <span class="panel-dot cinnabar"></span>
+            <h2 class="panel-title">异动监测</h2>
+            <span class="panel-subtitle">实时</span>
+          </div>
+          <div class="panel-body" id="dash-alterations"></div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-dot amethyst"></span>
+          <h2 class="panel-title">大家都在看</h2>
+          <span class="panel-subtitle">热门饰品</span>
+        </div>
+        <div class="panel-body" id="dash-viewcount"></div>
+      </section>
+    </div>
+
+    <!-- ── 自选列表 ── -->
+    <div id="watchlist-page" class="watchlist-page hidden">
+      <div class="wl-page-header">
+        <div class="wl-page-title-row">
+          <h2 class="wl-page-title">我的自选</h2>
+          <span id="wl-page-count" class="count-badge">0</span>
+          <span class="wl-status" id="wl-status"></span>
+          <button id="btn-wl-refresh" class="btn-icon" title="刷新全部价格">&#8635;</button>
+        </div>
+        <div class="wl-page-search">
+          <span class="search-icon">&#9906;</span>
+          <input type="text" id="wl-search-input" placeholder="搜索添加自选饰品…" autocomplete="off">
+          <button id="btn-wl-add" class="btn-fire btn-wl-add" disabled>添加</button>
+          <div id="wl-search-results" class="search-dropdown wl-dropdown"></div>
+        </div>
+      </div>
+      <div class="wl-page-table-wrap">
+        <table class="wl-table">
+          <colgroup>
+            <col>
+            <col style="width:100px"><col style="width:100px"><col style="width:100px">
+            <col style="width:72px"><col style="width:72px"><col style="width:72px">
+            <col style="width:90px"><col style="width:40px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="wl-th-name">饰品</th>
+              <th class="wl-th-price">当前价</th>
+              <th class="wl-th-price">求购价</th>
+              <th class="wl-th-price">添加价</th>
+              <th class="wl-th-chg">1D</th>
+              <th class="wl-th-chg">7D</th>
+              <th class="wl-th-chg">30D</th>
+              <th class="wl-th-num">添加时间</th>
+              <th class="wl-th-act"></th>
+            </tr>
+          </thead>
+          <tbody id="wl-table-body">
+            <tr class="wl-empty-row"><td colspan="9">暂无自选，在上方搜索添加</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 持仓管理 ── -->
+    <div id="portfolio-page" class="portfolio-page hidden">
+      <div class="pf-summary-row" id="pf-summary">
+        <div class="pf-card">
+          <div class="pf-card-label">持仓市值</div>
+          <div class="pf-card-value" id="pf-value">--</div>
+        </div>
+        <div class="pf-card">
+          <div class="pf-card-label">投入成本</div>
+          <div class="pf-card-value" id="pf-cost">--</div>
+        </div>
+        <div class="pf-card">
+          <div class="pf-card-label">浮动盈亏</div>
+          <div class="pf-card-value" id="pf-pnl">--</div>
+          <div class="pf-card-sub" id="pf-pnl-pct">--</div>
+        </div>
+        <div class="pf-card">
+          <div class="pf-card-label">持仓数量</div>
+          <div class="pf-card-value" id="pf-count">--</div>
+        </div>
+      </div>
+
+      <div class="pf-add-bar">
+        <div class="pf-add-row">
+          <div class="pf-add-search">
+            <span class="search-icon">&#9906;</span>
+            <input type="text" id="pf-search-input" placeholder="搜索饰品添加到持仓…" autocomplete="off">
+            <div id="pf-search-results" class="search-dropdown pf-dropdown"></div>
+          </div>
+          <input type="number" id="pf-buy-price" placeholder="买入价 ¥" step="0.01" min="0" class="pf-input-num">
+          <input type="number" id="pf-quantity" placeholder="数量" value="1" min="1" class="pf-input-num pf-input-qty">
+          <button id="btn-pf-add" class="btn-fire btn-pf-add">添加</button>
+        </div>
+        <button id="btn-pf-refresh" class="btn-icon" title="刷新价格" style="margin-left:auto;">&#8635;</button>
+      </div>
+
+      <div class="wl-page-table-wrap">
+        <table class="wl-table pf-table">
+          <colgroup>
+            <col>
+            <col style="width:96px"><col style="width:96px"><col style="width:52px">
+            <col style="width:96px"><col style="width:96px"><col style="width:90px"><col style="width:72px"><col style="width:48px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="wl-th-name">饰品</th><th>买入价</th><th>当前价</th><th>数量</th>
+              <th>投入</th><th>市值</th><th>盈亏</th><th>盈亏率</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="pf-table-body">
+            <tr class="wl-empty-row"><td colspan="9">暂无持仓，在上方搜索添加</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="pf-advice-modal" class="pf-modal hidden">
+        <div class="pf-modal-overlay"></div>
+        <div class="pf-modal-content panel">
+          <div class="panel-header">
+            <span class="panel-dot amethyst"></span>
+            <h2 class="panel-title" id="pf-advice-title">AI 持仓建议</h2>
+            <button id="btn-pf-advice-close" class="btn-close" style="margin-left:auto;">&times;</button>
+          </div>
+          <div class="panel-body">
+            <div id="pf-advice-text" class="ai-text">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pf-toast" class="pf-toast hidden">✓ 已保存</div>
+      <div id="pf-edit-modal" class="pf-modal hidden">
+        <div class="pf-modal-overlay"></div>
+        <div class="pf-modal-content panel" style="max-width:420px;">
+          <div class="panel-header">
+            <span class="panel-dot bronze"></span>
+            <h2 class="panel-title" id="pf-edit-title">编辑持仓</h2>
+            <button id="btn-pf-edit-close" class="btn-close" style="margin-left:auto;">&times;</button>
+          </div>
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="pf-edit-row">
+              <label class="pf-edit-label">饰品</label>
+              <span id="pf-edit-name" class="pf-edit-name">--</span>
+            </div>
+            <div class="pf-edit-row">
+              <label class="pf-edit-label">买入价 ¥</label>
+              <input type="number" id="pf-edit-price" step="0.01" min="0.01" class="pf-edit-input">
+            </div>
+            <div class="pf-edit-row">
+              <label class="pf-edit-label">数量</label>
+              <input type="number" id="pf-edit-qty" step="1" min="1" class="pf-edit-input">
+            </div>
+            <div class="confirm-actions">
+              <button id="btn-pf-edit-cancel" class="btn-confirm-cancel">取消</button>
+              <button id="btn-pf-edit-save" class="btn-confirm-ok" style="background:var(--accent);border-color:var(--accent);">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 加载 / 错误 ── -->
+    <div id="loading-screen" class="loading-screen hidden">
+      <div class="loader-card">
+        <div class="loader-ring">
+          <svg class="loader-ring-svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" class="loader-ring-track"/>
+            <circle cx="50" cy="50" r="42" class="loader-ring-fill"/>
+          </svg>
+          <span class="loader-diamond">&#9670;</span>
+        </div>
+        <p class="loader-item-name" id="loading-item-name"></p>
+        <p class="loader-status" id="loading-text">正在获取数据…</p>
+        <div class="loader-dots">
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+        </div>
+      </div>
+    </div>
+    <div id="error-toast" class="toast error-toast"></div>
+
+    <!-- ── 分析结果 ── -->
+    <div id="results-container" class="hidden">
+
+      <div class="analysis-grid">
+        <!-- 左列: 走势图 -->
+        <div class="ag-left">
+          <section class="panel chart-panel">
+            <div class="panel-body">
+              <img id="chart-img" src="" alt="走势图">
+            </div>
+          </section>
+        </div>
+
+        <!-- 右列: 建议+市场左右 + AI -->
+        <div class="ag-right">
+          <div class="ag-right-top">
+            <section class="panel rec-panel">
+              <div class="panel-header">
+                <span id="rec-dot" class="panel-dot"></span>
+                <h2 class="panel-title">建议</h2>
+                <span id="rec-badge" class="panel-badge">--</span>
+              </div>
+              <div class="panel-body">
+                <div class="score-row">
+                  <div class="score-gauge-wrap">
+                    <svg class="score-gauge" viewBox="0 0 120 70">
+                      <path d="M15 55 A45 45 0 0 1 105 55" class="gauge-bg"/>
+                      <path id="gauge-fill" d="M15 55 A45 45 0 0 1 105 55" class="gauge-fill"/>
+                    </svg>
+                    <span id="score-value" class="score-value">0</span>
+                  </div>
+                  <p id="rec-summary" class="rec-text"></p>
+                </div>
+                <ul id="rec-details" class="signal-list"></ul>
+              </div>
+            </section>
+
+            <section class="panel detail-panel">
+              <div class="panel-header">
+                <span class="panel-dot lapis"></span>
+                <h2 class="panel-title">市场</h2>
+              </div>
+              <div class="panel-body">
+                <div id="detail-grid" class="detail-grid"></div>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel chat-panel">
+            <div class="panel-header">
+              <span class="panel-dot amethyst"></span>
+              <h2 class="panel-title">AI 助手</h2>
+            </div>
+            <div class="panel-body chat-body">
+              <div id="chat-messages" class="chat-messages"></div>
+              <div class="chat-input-row">
+                <textarea id="chat-input" rows="2"
+                          placeholder="输入问题…"></textarea>
+                <button id="btn-chat-send" class="btn-send" title="发送 (Enter)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9"/></svg>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════
+  SETTINGS DRAWER
+  ═══════════════════════════════ -->
+<div id="settings-overlay" class="overlay hidden"></div>
+<aside id="settings-drawer" class="settings-drawer hidden">
+  <div class="settings-header">
+    <h2 class="settings-title">&#9881; 设置</h2>
+    <button id="btn-settings-close" class="btn-close" title="关闭">&times;</button>
+  </div>
+  <div class="settings-body">
+    <fieldset class="settings-group">
+      <legend class="settings-legend">API 配置</legend>
+      <label class="settings-label">
+        <span>CSQaQ API Token</span>
+        <div class="settings-input-wrap">
+          <input type="password" id="set-api-token" class="settings-input" placeholder="输入 API Token" autocomplete="off">
+          <button class="btn-eye" data-target="set-api-token" title="显示/隐藏" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </label>
+      <label class="settings-label">
+        <span>DeepSeek API Key</span>
+        <div class="settings-input-wrap">
+          <input type="password" id="set-deepseek-key" class="settings-input" placeholder="sk-..." autocomplete="off">
+          <button class="btn-eye" data-target="set-deepseek-key" title="显示/隐藏" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </label>
+      <label class="settings-label">
+        <span>分析模型</span>
+        <select id="set-deepseek-model" class="settings-input">
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+        </select>
+      </label>
+      <label class="settings-label">
+        <span>对话模型</span>
+        <select id="set-deepseek-chat-model" class="settings-input">
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+        </select>
+      </label>
+      <div class="settings-label-row">
+        <div class="settings-label">
+          <span>分析温度 <em style="font-style:normal;color:var(--accent);" id="val-ai-temperature">0</em></span>
+          <input type="range" id="set-ai-temperature" min="0" max="2" step="0.1" value="0" class="settings-range">
+        </div>
+        <div class="settings-label">
+          <span>对话温度 <em style="font-style:normal;color:var(--accent);" id="val-chat-temperature">0</em></span>
+          <input type="range" id="set-chat-temperature" min="0" max="2" step="0.1" value="0" class="settings-range">
+        </div>
+      </div>
+      <p style="font-size:0.65rem;color:var(--text-tertiary);margin-top:2px;">温度: 0=严谨确定, 1=平衡, 2=创意发散</p>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">IP 白名单</legend>
+      <p class="settings-hint" style="font-size:0.7rem;color:var(--text-tertiary);margin-bottom:6px;">csqaq API 需要绑定 IP 后才能正常请求。</p>
+      <div class="ip-info" style="display:flex;gap:16px;margin-bottom:10px;font-size:0.7rem;color:var(--text-secondary);">
+        <span>本地: <strong id="my-local-ip">--</strong></span>
+        <span>公网: <strong id="my-public-ip">--</strong></span>
+      </div>
+      <button id="btn-bind-ip" class="btn-fire" style="width:100%;">绑定当前 IP</button>
+      <span id="bind-ip-result" class="settings-msg" style="margin-top:8px;display:block;"></span>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">饰品品类数据</legend>
+      <p class="settings-hint" style="font-size:0.7rem;color:var(--text-tertiary);margin-bottom:6px;">
+        从 <a href="https://docs.csqaq.com/api-337690892" target="_blank" style="color:var(--accent);">csqaq 官方文档</a> 下载最新饰品 ID 映射 JSON，然后在此上传更新。
+      </p>
+      <div class="idmap-info" style="display:flex;gap:16px;margin-bottom:6px;font-size:0.7rem;color:var(--text-secondary);">
+        <span>当前: <strong id="idmap-count">--</strong> 个饰品</span>
+        <span>文件: <strong id="idmap-filename" class="idmap-filename-link" title="点击预览内容">--</strong></span>
+        <span>大小: <strong id="idmap-size">--</strong></span>
+      </div>
+      <div id="idmap-new-info" class="idmap-info" style="display:none;gap:16px;margin-bottom:10px;font-size:0.7rem;color:var(--accent);">
+        <span>新文件: <strong id="idmap-new-count">--</strong> 个饰品</span>
+        <span>文件: <strong id="idmap-new-filename">--</strong></span>
+        <span>大小: <strong id="idmap-new-size">--</strong></span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label class="btn-fire" style="cursor:pointer;padding:8px 16px;font-size:0.75rem;">
+          <input type="file" id="idmap-file-input" accept=".json" style="display:none;">
+          &#128194; 选择 JSON
+        </label>
+        <span id="idmap-filename-display" style="font-size:0.7rem;color:var(--text-tertiary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">未选择文件</span>
+        <button id="btn-idmap-upload" class="btn-fire" style="padding:8px 16px;font-size:0.75rem;" disabled>上传替换</button>
+      </div>
+      <span id="idmap-upload-result" class="settings-msg" style="margin-top:8px;display:block;"></span>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">外观风格</legend>
+      <div class="settings-label">
+        <span>主题</span>
+        <div class="toggle-row" id="set-theme">
+          <button data-value="dark" class="toggle-btn active">&#9790; 暗色</button>
+          <button data-value="light" class="toggle-btn">&#9788; 亮色</button>
+        </div>
+      </div>
+      <div class="settings-label">
+        <span>强调色</span>
+        <div class="color-row" id="set-accent">
+          <button data-value="green" class="color-btn active" style="--c:#5B8C5A"><span>&#10003;</span></button>
+          <button data-value="cyan" class="color-btn" style="--c:#5A8FA8"><span>&#10003;</span></button>
+          <button data-value="gold" class="color-btn" style="--c:#B8944C"><span>&#10003;</span></button>
+          <button data-value="purple" class="color-btn" style="--c:#8B6BAE"><span>&#10003;</span></button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="settings-footer">
+    <span id="settings-msg" class="settings-msg"></span>
+    <button id="btn-settings-save" class="btn-fire">保存设置</button>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════
+  IMAGE VIEWER MODAL
+  ═══════════════════════════════ -->
+<div id="img-viewer" class="img-viewer hidden">
+  <div class="img-viewer-bg"></div>
+  <div class="img-viewer-content">
+    <button id="img-viewer-close" class="img-viewer-close">&times;</button>
+    <img id="img-viewer-img" src="" alt="走势图">
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+  ID MAP PREVIEW MODAL
+  ═══════════════════════════════ -->
+<div id="idmap-modal" class="idmap-modal hidden">
+  <div class="idmap-modal-overlay"></div>
+  <div class="idmap-modal-content panel">
+    <div class="idmap-modal-header">
+      <h3>饰品品类预览</h3>
+      <input type="text" id="idmap-search-input" class="idmap-search-input" placeholder="搜索名称或ID…" autocomplete="off">
+      <span style="font-size:0.7rem;color:var(--text-tertiary);white-space:nowrap;" id="idmap-modal-info"></span>
+      <button id="idmap-modal-close" class="btn-close">&times;</button>
+    </div>
+    <div class="idmap-modal-body" id="idmap-modal-body">
+      <table class="idmap-table">
+        <thead><tr><th>ID</th><th>中文名</th><th>市场名</th></tr></thead>
+        <tbody id="idmap-table-body"></tbody>
+      </table>
+    </div>
+    <div class="idmap-modal-footer">
+      <button id="idmap-prev-btn" class="btn-fire" style="padding:5px 16px;font-size:0.72rem;" disabled>上一页</button>
+      <span id="idmap-page-info" style="font-size:0.72rem;color:var(--text-secondary);white-space:nowrap;">-</span>
+      <button id="idmap-next-btn" class="btn-fire" style="padding:5px 16px;font-size:0.72rem;">下一页</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js?v=20250626j"></script>
+  <!-- ═══════════════════════════════
+    CONFIRM DIALOG
+    ═══════════════════════════════ -->
+  <div id="confirm-dialog" class="pf-modal hidden">
+    <div class="pf-modal-overlay"></div>
+    <div class="pf-modal-content panel" style="max-width:360px;">
+      <div class="panel-body" style="text-align:center;padding:24px 20px;">
+        <p id="confirm-msg" style="font-size:var(--text-sm);color:var(--text-primary);margin-bottom:20px;line-height:1.6;"></p>
+        <div class="confirm-actions">
+          <button id="btn-confirm-cancel" class="btn-confirm-cancel">取消</button>
+          <button id="btn-confirm-ok" class="btn-confirm-ok">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

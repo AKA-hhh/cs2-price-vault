@@ -1,0 +1,29 @@
+# ── Secrets ──
+.env
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ── User data (runtime artifacts) ──
+history/
+analysis_output/
+portfolio.json
+watchlist.json
+settings.json
+
+# ── OS ──
+.DS_Store
+Thumbs.db
