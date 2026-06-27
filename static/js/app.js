@@ -18,7 +18,9 @@ const $errorToast    = document.getElementById("error-toast");
 const $resultsContainer = document.getElementById("results-container");
 const $watchlistPage  = document.getElementById("watchlist-page");
 const $chartImg      = document.getElementById("chart-img");
+const $chartIframe   = document.getElementById("chart-iframe");
 const $chartLabel    = document.getElementById("chart-label");
+let _chartBlobUrl = null;  // 用于释放旧的 iframe Blob URL
 const $recDot         = document.getElementById("rec-dot");
 const $recBadge       = document.getElementById("rec-badge");
 const $gaugeFill      = document.getElementById("gauge-fill");
@@ -108,7 +110,7 @@ async function loadHistory(keepActiveId) {
     if (pendingName) {
       prependPendingHistory(pendingName, pendingDays);
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) { console.error("loadHistory 失败:", e); }
 }
 
 function renderHistory(analyses) {
@@ -119,7 +121,7 @@ function renderHistory(analyses) {
   }
   $historyList.innerHTML = analyses.map(a => {
     const scoreCls = a.score >= 30 ? "positive" : a.score > -30 ? "neutral" : "negative";
-    const isActive = a.id === activeAnalysisId && !$resultsContainer.classList.contains("hidden");
+    const isActive = a.id === activeAnalysisId;
     const actionLabel = {strong_buy:"买入",buy:"买入",hold:"观望",sell:"卖出",strong_sell:"卖出"};
     const action = actionLabel[a.action] || "";
     const actionCls = a.action || "";
@@ -156,6 +158,13 @@ $historyList.addEventListener("click", async (e) => {
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({analysis_id: aid}),
     });
+    // 先从 DOM 移除，防止 loadHistory 失败导致已删除项仍然可见
+    hi?.remove();
+    const count = $historyList.querySelectorAll(".history-item").length;
+    $historyCount.textContent = count;
+    if (!count) {
+      $historyList.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+    }
     await loadHistory();
     showToast("✓ 已删除");
     // If the deleted was active, update right side
@@ -410,14 +419,14 @@ function showWatchlistPage() {
   hide($errorToast);
   show($watchlistPage);
   setActiveNav("btn-watchlist-page");
-  loadHistory(); // 刷新侧边栏去掉高亮
+  activeAnalysisId = null;
+  loadHistory(true); // keepActiveId 防止服务器 active_id 覆盖
   loadWatchlist().then(() => {
     // 后台自动刷新最新价格
     fetch("/api/watchlist/refresh", {method:"POST"}).then(r => r.json()).then(items => {
       renderWatchlistTable(items);
     }).catch(() => {});
   });
-  activeAnalysisId = null;
 }
 
 function showPromptsPage() {
@@ -431,9 +440,9 @@ function showPromptsPage() {
   hide($errorToast);
   show($promptsPage);
   setActiveNav("btn-prompts-page");
-  loadHistory();
-  loadPrompts();
   activeAnalysisId = null;
+  loadHistory(true);
+  loadPrompts();
 }
 
 $btnAnalyze.addEventListener("click", runAnalysis);
@@ -565,7 +574,25 @@ function renderResults(data, isSwitch) {
   setActiveNav(null);  // 分析结果页不属于任何导航页
 
   // ── Chart ──
-  $chartImg.src = "data:image/png;base64," + data.chart_b64;
+  // 释放旧的 iframe Blob URL
+  if (_chartBlobUrl) { URL.revokeObjectURL(_chartBlobUrl); _chartBlobUrl = null; }
+
+  if (data.chart_html) {
+    // Plotly 交互式图表：用 iframe + Blob URL 渲染
+    hide($chartImg);
+    // 先隐藏再设 src，强制浏览器在内容加载后重新计算布局
+    hide($chartIframe);
+    $chartIframe.src = "about:blank";
+    const blob = new Blob([data.chart_html], { type: "text/html" });
+    _chartBlobUrl = URL.createObjectURL(blob);
+    $chartIframe.onload = () => { show($chartIframe); };
+    $chartIframe.src = _chartBlobUrl;
+  } else {
+    // Matplotlib 静态图表
+    hide($chartIframe);
+    $chartImg.src = "data:image/png;base64," + data.chart_b64;
+    show($chartImg);
+  }
   // $chartLabel.textContent = (data.item_name||"") + " · " + (data.period_days||"") + "D";
 
   // ── Recommendation ──
@@ -644,10 +671,10 @@ function resetToWelcome() {
 
   show($dashboard);
   setActiveNav("btn-dashboard");
-  loadHistory(); // 刷新侧边栏去掉高亮
+  activeAnalysisId = null;
+  loadHistory(true); // keepActiveId 防止服务器 active_id 覆盖
   $searchInput.value = "";
   selectedItemId = null; selectedItemName = null;
-  activeAnalysisId = null;
   $btnAnalyze.disabled = true;
   $chatMessages.innerHTML = "";
   loadDashboard(); // 刷新大盘数据
@@ -910,6 +937,8 @@ async function loadSettings() {
     document.getElementById("val-ai-temperature").textContent = d.ai_temperature || "0";
     document.getElementById("set-chat-temperature").value = d.chat_temperature || "0";
     document.getElementById("val-chat-temperature").textContent = d.chat_temperature || "0";
+    // Chart engine
+    setToggle("set-chart-engine", d.chart_engine || "matplotlib");
     // Theme
     setToggle("set-theme", d.theme || "dark");
     setColor("set-accent", d.accent || "green");
@@ -947,6 +976,7 @@ $btnSettingsSave.addEventListener("click", async () => {
   // Read toggle/color selections
   const theme = document.querySelector("#set-theme .toggle-btn.active")?.dataset?.value || "dark";
   const accent = document.querySelector("#set-accent .color-btn.active")?.dataset?.value || "green";
+  const chartEngine = document.querySelector("#set-chart-engine .toggle-btn.active")?.dataset?.value || "matplotlib";
   const aiTemp = document.getElementById("set-ai-temperature").value;
   const chatTemp = document.getElementById("set-chat-temperature").value;
 
@@ -961,7 +991,7 @@ $btnSettingsSave.addEventListener("click", async () => {
         deepseek_chat_model: chatModel,
         ai_temperature: aiTemp,
         chat_temperature: chatTemp,
-        theme, accent, font_size: "large",
+        theme, accent, font_size: "large", chart_engine: chartEngine,
       }),
     });
     const d = await r.json();
@@ -1302,6 +1332,8 @@ function showPage(page) {
   hide($dashboard); hide($watchlistPage); hide($portfolioPage); hide($kbPage); hide($promptsPage);
   hide($resultsContainer); hide($loadingScreen);
   document.querySelectorAll(".btn-dash").forEach(b => b.classList.remove("active"));
+  activeAnalysisId = null;
+  loadHistory(true);
   if (page === "kb") { show($kbPage); $btnKbPage.classList.add("active"); kbCurPage = 1; loadKbList(); }
 }
 
@@ -2432,7 +2464,8 @@ document.getElementById("btn-portfolio-page").addEventListener("click", () => {
   hide($errorToast);
   show($portfolioPage);
   setActiveNav("btn-portfolio-page");
-  loadHistory(); // 刷新侧边栏去掉高亮
+  activeAnalysisId = null;
+  loadHistory(true); // keepActiveId 防止服务器 active_id 覆盖
   loadPortfolio().then(() => {
     // 后台自动刷新最新价格
     fetch("/api/portfolio/refresh", {method:"POST"}).then(() => loadPortfolio()).catch(() => {});

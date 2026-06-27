@@ -47,7 +47,7 @@ def _api_request_with_retry(method, url, headers, data=None, json_payload=None, 
 def get_item_price_history(item_id, period_days):
     """获取饰品历史价格数据。
 
-    首选 K线端点 (/api/v1/info/simple/chartAll)，
+    首选 K线端点 (/api/v1/sub/kline)，返回完整 OHLC，
     若不可用则回退到普通价格端点 (/api/v1/info/chart)。
     """
     kline_data = _try_kline_api(item_id, period_days)
@@ -60,39 +60,85 @@ def get_item_price_history(item_id, period_days):
 
 
 def _try_kline_api(item_id, period_days):
-    """尝试 K线端点 /api/v1/info/simple/chartAll"""
+    """尝试 K线端点 POST /api/v1/info/simple/chartAll (返回 OHLC K线数据)
+
+    接口文档: https://api.csqaq.com → 获取单件饰品图表数据(K线)
+
+    参数说明:
+      good_id  - 饰品唯一ID（整数）
+      plat     - 平台: 1=BUFF  2=悠悠有品
+      periods  - K线粒度: 1hour / 4hour / 1day
+      max_time - 数据截止时间戳（毫秒），传当前时间即可
+
+    返回: [{c(收盘), h(最高), l(最低), o(开盘), t(时间戳ms), v(成交量)}]
+
+    根据 period_days 自动选择 K 线粒度:
+      - <=7 天  → 1hour (小时线)
+      - <=30 天 → 4hour (4小时线)
+      - >30 天  → 1day  (日线)
+
+    注意: 此端点需企业IP权限，个人用户会返回 401，届时自动回退到 chart 端点。
+    """
+    if period_days <= 7:
+        ktype = "1hour"
+    elif period_days <= 30:
+        ktype = "4hour"
+    else:
+        ktype = "1day"
+
     url = "https://api.csqaq.com/api/v1/info/simple/chartAll"
     payload = json.dumps({
         "good_id": str(item_id),
-        "plat": 2,
-        "periods": "1day",
+        "plat": 1,
+        "periods": ktype,
         "max_time": int(time.time() * 1000),
     })
     headers = {"ApiToken": API_TOKEN, "Content-Type": "application/json"}
+    print(f"  请求K线: {ktype} (period={period_days}d)")
 
     try:
-        resp = _api_request_with_retry("POST", url, headers, data=payload)
+        resp = _api_request_with_retry("POST", url, headers, data=payload.encode("utf-8"))
         if resp.status_code == 401:
-            return None
-        if resp.status_code not in (200, 429):
+            print(f"  K线端点 401: API Token 无效或未绑定IP")
             return None
         if resp.status_code == 429:
-            print("  K线端点被限流，跳过")
+            print("  K线端点 429: 被限流，跳过")
             return None
+        if resp.status_code != 200:
+            print(f"  K线端点 HTTP {resp.status_code}，回退普通端点")
+            return None
+
         data = resp.json()
-        if data.get("code") != 200:
+        code = data.get("code", -1)
+        if code != 200:
+            print(f"  K线端点业务错误: code={code}, msg={data.get('msg', '')}")
             return None
 
         raw = data.get("data", [])
         if not raw:
+            print("  K线端点返回空 data 数组")
             return None
 
+        print(f"  K线端点原始返回 {len(raw)} 条 (类型={ktype})")
+        # 调试：打印第一条数据看看格式
+        if len(raw) > 0:
+            sample = raw[0]
+            if isinstance(sample, dict):
+                print(f"  数据格式: dict, keys={list(sample.keys())}, sample={ {k: sample[k] for k in list(sample.keys())[:6]} }")
+            elif isinstance(sample, (list, tuple)):
+                print(f"  数据格式: list(len={len(sample)}), sample={sample[:6]}")
+            else:
+                print(f"  数据格式: {type(sample).__name__}, sample={str(sample)[:100]}")
+
         df = _parse_kline(raw)
-        if df is not None and not df.empty:
-            print(f"[K线端点] 获取 {len(df)} 条数据")
-            return df
-        return None
-    except Exception:
+        if df is None or df.empty:
+            print("  K线端点: 解析后无有效数据")
+            return None
+
+        print(f"[K线端点] 成功获取 {len(df)} 条 K线, columns={list(df.columns)}, {df['time'].iloc[0]} ~ {df['time'].iloc[-1]}")
+        return df
+    except Exception as e:
+        print(f"  K线端点异常: {e}")
         return None
 
 
@@ -131,6 +177,8 @@ def _parse_kline(raw_data):
         if c is None:
             continue
 
+        if isinstance(ts, str):
+            ts = int(ts) if ts.isdigit() else float(ts)
         if isinstance(ts, (int, float)):
             dt = datetime.fromtimestamp(ts / 1000 if ts > 1e12 else ts)
         else:
@@ -154,15 +202,32 @@ def _parse_kline(raw_data):
 
 
 def _try_chart_api(item_id, period_days):
-    """使用 /api/v1/info/chart 获取价格数据（含在售数量）"""
+    """使用 /api/v1/info/chart 获取价格数据（含在售数量）
+
+    接口文档: https://api.csqaq.com → 饰品详情 → 获取单件饰品图表数据
+
+    参数说明:
+      good_id  - 饰品唯一ID（整数）
+      key      - 数据类型: sell_price(出售价) / buy_price(求购价) / sell_num(在售数量) 等
+                 lease_num / short_lease_price / long_lease_price 等仅限 platform=2
+                 turnover_number 仅限 platform=3
+      platform - 平台: 1=BUFF  2=悠悠有品  3=Steam  4=C5GAME
+      period   - 查询周期: 7/15/30/90/180/365/1095 (天)
+      style    - 款式: all_style(默认) / Phase1~4 / Sapphire / Ruby / Black Pearl / Emerald
+                 (仅 platform=1 查询多普勒系列时可用)
+    """
+    # 将用户选择的周期映射到 API 支持的有效值
+    VALID_PERIODS = [7, 15, 30, 90, 180, 365, 1095]
+    api_period = min(VALID_PERIODS, key=lambda p: abs(p - period_days))
+
     url = "https://api.csqaq.com/api/v1/info/chart"
     headers = {"ApiToken": API_TOKEN, "Content-Type": "application/json"}
     payload = json.dumps({
         "good_id": str(item_id),
-        "key": "sell_price",
-        "platform": 2,
-        "period": str(period_days),
-        "style": "all_style",
+        "key": "sell_price",       # 出售价（含在售数量 num_data）
+        "platform": 2,             # 2 = 悠悠有品
+        "period": str(api_period), # 最近 N 天
+        "style": "all_style",      # 默认款式
     })
 
     try:

@@ -28,6 +28,7 @@ from core.recommendation import generate_recommendation
 from core.ai_analysis import get_ai_analysis, chat_with_context
 from core.prompts import prompt_mgr
 from core.visualization import plot_analysis
+from core.visualization_plotly import plot_analysis as plot_analysis_plotly
 from core.utils import extract_wear_level, sanitize_filename
 
 app = Flask(__name__)
@@ -59,20 +60,31 @@ MAX_ANALYSES_PER_USER = 50
 
 
 def _analysis_disk_path(aid):
-    """分析记录的磁盘路径: history/{aid}.json + history/{aid}.png"""
-    return os.path.join(HISTORY_DIR, f"{aid}.json"), os.path.join(HISTORY_DIR, f"{aid}.png")
+    """分析记录的磁盘路径: history/{aid}.json + history/{aid}.png + history/{aid}_chart.html"""
+    return (
+        os.path.join(HISTORY_DIR, f"{aid}.json"),
+        os.path.join(HISTORY_DIR, f"{aid}.png"),
+        os.path.join(HISTORY_DIR, f"{aid}_chart.html"),
+    )
 
 
 def _save_analysis_to_disk(analysis):
     """将单条分析持久化到磁盘 (JSON + PNG)"""
     aid = analysis["id"]
-    json_path, png_path = _analysis_disk_path(aid)
+    json_path, png_path, html_path = _analysis_disk_path(aid)
     try:
         # 保存图表为 PNG
         if analysis.get("chart_b64"):
             img_data = base64.b64decode(analysis["chart_b64"])
             with open(png_path, "wb") as f:
                 f.write(img_data)
+        # 保存交互式图表 HTML (Plotly)
+        if analysis.get("chart_html"):
+            try:
+                with open(html_path, "w", encoding="utf-8") as f:
+                    f.write(analysis["chart_html"])
+            except Exception as e:
+                print(f"  保存图表 HTML 失败 [{aid}]: {e}")
         # 保存元数据为 JSON (不含 base64 图片，太大)
         record = {
             "id": analysis["id"],
@@ -93,8 +105,8 @@ def _save_analysis_to_disk(analysis):
 
 def _delete_analysis_from_disk(aid):
     """删除磁盘上的分析记录"""
-    json_path, png_path = _analysis_disk_path(aid)
-    for p in (json_path, png_path):
+    json_path, png_path, html_path = _analysis_disk_path(aid)
+    for p in (json_path, png_path, html_path):
         try:
             if os.path.exists(p):
                 os.remove(p)
@@ -110,7 +122,7 @@ def _load_analyses_from_disk():
             if not fname.endswith(".json"):
                 continue
             aid = fname[:-5]  # 去掉 .json
-            json_path, png_path = _analysis_disk_path(aid)
+            json_path, png_path, html_path = _analysis_disk_path(aid)
             try:
                 with open(json_path, "r", encoding="utf-8") as f:
                     record = json.load(f)
@@ -124,12 +136,21 @@ def _load_analyses_from_disk():
                         chart_b64 = base64.b64encode(f.read()).decode("utf-8")
                 except Exception:
                     pass
+            # 恢复 chart_html (Plotly 交互式图表)
+            chart_html = ""
+            if os.path.exists(html_path):
+                try:
+                    with open(html_path, "r", encoding="utf-8") as f:
+                        chart_html = f.read()
+                except Exception:
+                    pass
             analysis = {
                 "id": aid,
                 "item_name": record.get("item_name", ""),
                 "item_id": record.get("item_id", 0),
                 "period_days": record.get("period_days", 90),
                 "chart_b64": chart_b64,
+                "chart_html": chart_html,
                 "recommendation": record.get("recommendation", {}),
                 "detail": record.get("detail", {}),
                 "ai_analysis": record.get("ai_analysis", ""),
@@ -171,6 +192,32 @@ def _fig_to_base64(fig=None):
     plt.close(fig)
     buf.close()
     return b64
+
+
+def _plotly_fig_to_base64(fig):
+    """将 Plotly figure 转为 base64 PNG 字符串"""
+    try:
+        img_bytes = fig.to_image(format="png", scale=2)
+        return base64.b64encode(img_bytes).decode("utf-8")
+    except ValueError as e:
+        print(f"Plotly PNG 导出失败 (需安装 kaleido): {e}")
+        return None
+
+
+def _build_chart_html_page(fig):
+    """将 Plotly figure 包装成完整的 HTML 文档（iframe 友好）"""
+    # 不强制 responsive=false，让图表宽度自适应容器；高度由 layout.height 固定
+    chart_div = fig.to_html(include_plotlyjs="cdn", full_html=False)
+    return (
+        '<!DOCTYPE html>\n'
+        '<html lang="zh-CN">\n'
+        '<head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        '<style>body{margin:0;padding:8px;background:#fff;font-family:"Microsoft YaHei","SimHei",sans-serif;}</style>'
+        '</head>\n'
+        f'<body>{chart_div}</body>\n'
+        '</html>'
+    )
 
 
 def _build_chat_messages(df, item_name, period_days, recommendation, ai_text):
@@ -537,9 +584,27 @@ def api_analyze():
     elif ai_ok is False:
         print(f"  AI 分析跳过: {ai_text[:80]}...")
 
-    # 图表
-    plot_analysis(df, item_name, period_days, recommendation, show=False)
-    chart_b64 = _fig_to_base64()
+    # 图表：根据设置选择引擎 (默认 matplotlib)
+    ui = _load_ui_settings()
+    chart_engine = ui.get("chart_engine", "matplotlib")
+    chart_html = ""  # Plotly 交互式 HTML
+
+    if chart_engine == "plotly":
+        plotly_fig = plot_analysis_plotly(df, item_name, period_days, recommendation, show=False)
+        chart_b64 = _plotly_fig_to_base64(plotly_fig) if plotly_fig else ""
+        if plotly_fig:
+            try:
+                chart_html = _build_chart_html_page(plotly_fig)
+            except Exception as e:
+                print(f"  生成 Plotly HTML 失败: {e}")
+        if not chart_b64:
+            # kaleido 未安装，回退到 matplotlib
+            print("  Plotly 回退到 matplotlib (kaleido 未安装)")
+            plot_analysis(df, item_name, period_days, recommendation, show=False)
+            chart_b64 = _fig_to_base64()
+    else:
+        plot_analysis(df, item_name, period_days, recommendation, show=False)
+        chart_b64 = _fig_to_base64()
 
     # 保存到磁盘
     now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -548,12 +613,17 @@ def api_analyze():
     filename = f"{now_str}_{safe_name}"
     if wear:
         filename += f"_{wear}"
-    filename += f"_{period_days}d_analysis.png"
+    filename += f"_{period_days}d_analysis"
     save_path = os.path.join(BASE_DIR, "analysis_output", filename)
     try:
-        plot_analysis(df, item_name, period_days, recommendation, show=False)
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        if chart_engine == "plotly":
+            save_path_png = save_path + ".png"
+            plotly_fig2 = plot_analysis_plotly(df, item_name, period_days, recommendation, save_path=save_path_png, show=False)
+        else:
+            save_path_png = save_path + ".png"
+            plot_analysis(df, item_name, period_days, recommendation, show=False)
+            plt.savefig(save_path_png, dpi=150, bbox_inches="tight")
+            plt.close()
     except Exception as e:
         print(f"  保存图表失败: {e}")
 
@@ -575,6 +645,7 @@ def api_analyze():
         "item_id": int(item_id),
         "period_days": period_days,
         "chart_b64": chart_b64,
+        "chart_html": chart_html,
         "recommendation": recommendation,
         "detail": detail,
         "ai_analysis": ai_text if (ai_ok is True or ai_ok is False) else "",
@@ -603,6 +674,7 @@ def api_analyze():
         "item_id": int(item_id),
         "period_days": period_days,
         "chart_b64": chart_b64,
+        "chart_html": chart_html,
         "recommendation": recommendation,
         "detail": detail,
         "ai_analysis": ai_text if (ai_ok is True or ai_ok is False) else "",
@@ -765,6 +837,7 @@ def api_session_switch():
         "item_id": analysis["item_id"],
         "period_days": analysis["period_days"],
         "chart_b64": analysis["chart_b64"],
+        "chart_html": analysis.get("chart_html", ""),
         "recommendation": analysis["recommendation"],
         "detail": analysis["detail"],
         "ai_analysis": analysis["ai_analysis"],
@@ -824,7 +897,7 @@ def api_session_current():
 # ══════════════════════════════════════════════════════════════
 
 SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
-DEFAULT_SETTINGS = {"theme": "dark", "accent": "green", "font_size": "large"}
+DEFAULT_SETTINGS = {"theme": "dark", "accent": "green", "font_size": "large", "chart_engine": "matplotlib"}
 
 
 def _mask_key(value):
@@ -916,6 +989,7 @@ def api_settings_get():
         "theme": ui.get("theme", "dark"),
         "accent": ui.get("accent", "green"),
         "font_size": ui.get("font_size", "normal"),
+        "chart_engine": ui.get("chart_engine", "matplotlib"),
     })
 
 
@@ -959,6 +1033,7 @@ def api_settings_save():
         "theme": data.get("theme", "dark"),
         "accent": data.get("accent", "green"),
         "font_size": data.get("font_size", "normal"),
+        "chart_engine": data.get("chart_engine", "matplotlib"),
     }
     _save_ui_settings(ui)
     saved_any = True

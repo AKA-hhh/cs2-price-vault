@@ -432,8 +432,9 @@
         <!-- 左列: 走势图 -->
         <div class="ag-left">
           <section class="panel chart-panel">
-            <div class="panel-body">
+            <div class="panel-body" id="chart-body">
               <img id="chart-img" src="" alt="走势图">
+              <iframe id="chart-iframe" class="hidden" style="width:100%;height:100%;border:none;"></iframe>
             </div>
           </section>
         </div>
@@ -589,6 +590,13 @@
     </fieldset>
     <fieldset class="settings-group">
       <legend class="settings-legend">外观风格</legend>
+      <div class="settings-label">
+        <span>图表引擎</span>
+        <div class="toggle-row" id="set-chart-engine">
+          <button data-value="matplotlib" class="toggle-btn active">Matplotlib</button>
+          <button data-value="plotly" class="toggle-btn">Plotly 交互式</button>
+        </div>
+      </div>
       <div class="settings-label">
         <span>主题</span>
         <div class="toggle-row" id="set-theme">
