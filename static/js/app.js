@@ -98,8 +98,16 @@ async function loadHistory(keepActiveId) {
     if (!keepActiveId) {
       activeAnalysisId = data.active_id;
     }
+    // 保存 pending 项信息，renderHistory 会清空 innerHTML
+    const pendingEl = document.getElementById("history-pending");
+    const pendingName = pendingEl ? pendingEl.querySelector(".hi-name")?.textContent || "" : "";
+    const pendingDays = pendingEl ? pendingEl.querySelector(".hi-period")?.textContent || "" : "";
     renderHistory(data.analyses || []);
     $historyCount.textContent = (data.analyses || []).length;
+    // 恢复 pending 项
+    if (pendingName) {
+      prependPendingHistory(pendingName, pendingDays);
+    }
   } catch (e) { /* ignore */ }
 }
 
@@ -1681,9 +1689,21 @@ function loadMgrEditor(tid) {
   if (!item) return;
   $promptMgrName.value = item.name || "";
   $promptMgrText.value = item.text || "";
-  // builtin 模板不可改名称/删除
-  $promptMgrName.readOnly = !!item.builtin;
-  $promptMgrDelete.style.display = item.builtin ? "none" : "";
+  // builtin 模板不可编辑
+  const isBuiltin = !!item.builtin;
+  $promptMgrName.readOnly = isBuiltin;
+  $promptMgrText.readOnly = isBuiltin;
+  $promptMgrSave.style.display = isBuiltin ? "none" : "";
+  $promptMgrDelete.style.display = isBuiltin ? "none" : "";
+  if (isBuiltin) {
+    $promptMgrText.style.background = "var(--bg-inset)";
+    $promptMgrText.style.cursor = "not-allowed";
+    $promptMgrText.style.opacity = "0.7";
+  } else {
+    $promptMgrText.style.background = "";
+    $promptMgrText.style.cursor = "";
+    $promptMgrText.style.opacity = "";
+  }
   $promptMgrMsg.textContent = "";
   $promptMgrMsg.className = "settings-msg";
 }

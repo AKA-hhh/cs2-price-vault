@@ -1389,7 +1389,7 @@ def api_prompts_update_template(key, tid):
     text = data.get("text", "").strip() or None
     ok = prompt_mgr.update_template(key, tid, name=name, text=text)
     if not ok:
-        return jsonify({"error": "模板不存在"}), 404
+        return jsonify({"error": "模板不存在或为内置模板，无法修改"}), 400
     return jsonify({"ok": True})
 
 

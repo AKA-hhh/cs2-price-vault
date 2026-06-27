@@ -248,9 +248,11 @@ class PromptManager:
         return tid
 
     def update_template(self, key, tid, name=None, text=None):
-        """更新模板名称/内容"""
+        """更新模板名称/内容（builtin 不可修改）"""
         entry, item = self._find_item(key, tid)
         if not item:
+            return False
+        if item.get("builtin"):
             return False
         if name is not None:
             item["name"] = name.strip()
