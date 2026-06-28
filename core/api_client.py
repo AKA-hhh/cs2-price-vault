@@ -7,7 +7,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-from .config import API_TOKEN, REQUEST_TIMEOUT
+from . import config  # 通过 config.XXX 引用，确保 _write_env_value 更新后读取最新值
 
 # 请求间隔（秒），避免触发 429 频率限制
 REQUEST_DELAY = 1.0
@@ -15,7 +15,7 @@ REQUEST_DELAY = 1.0
 MAX_RETRIES_ON_429 = 3
 
 
-def _api_request_with_retry(method, url, headers, data=None, json_payload=None, timeout=REQUEST_TIMEOUT):
+def _api_request_with_retry(method, url, headers, data=None, json_payload=None, timeout=config.REQUEST_TIMEOUT):
     """带重试和频率控制的安全请求封装。
 
     1. 每次请求前 sleep REQUEST_DELAY 秒，确保不会连续轰炸 API
@@ -93,7 +93,7 @@ def _try_kline_api(item_id, period_days):
         "periods": ktype,
         "max_time": int(time.time() * 1000),
     })
-    headers = {"ApiToken": API_TOKEN, "Content-Type": "application/json"}
+    headers = {"ApiToken": config.API_TOKEN, "Content-Type": "application/json"}
     print(f"  请求K线: {ktype} (period={period_days}d)")
 
     try:
@@ -221,7 +221,7 @@ def _try_chart_api(item_id, period_days):
     api_period = min(VALID_PERIODS, key=lambda p: abs(p - period_days))
 
     url = "https://api.csqaq.com/api/v1/info/chart"
-    headers = {"ApiToken": API_TOKEN, "Content-Type": "application/json"}
+    headers = {"ApiToken": config.API_TOKEN, "Content-Type": "application/json"}
     payload = json.dumps({
         "good_id": str(item_id),
         "key": "sell_price",       # 出售价（含在售数量 num_data）
@@ -291,7 +291,7 @@ def get_item_detail(item_id):
     返回 goods_info 字典，失败返回 None
     """
     url = f"https://api.csqaq.com/api/v1/info/good?id={item_id}"
-    headers = {"ApiToken": API_TOKEN}
+    headers = {"ApiToken": config.API_TOKEN}
     try:
         resp = _api_request_with_retry("GET", url, headers)
         if resp.status_code != 200:
@@ -311,7 +311,7 @@ def get_market_overview():
     返回完整 data dict，失败返回 None
     """
     url = "https://api.csqaq.com/api/v1/current_data?type=init"
-    headers = {"ApiToken": API_TOKEN}
+    headers = {"ApiToken": config.API_TOKEN}
     try:
         resp = _api_request_with_retry("GET", url, headers)
         if resp.status_code != 200:

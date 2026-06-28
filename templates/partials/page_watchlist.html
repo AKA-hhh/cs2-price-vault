@@ -1,0 +1,43 @@
+    <!-- ── 自选列表 ── -->
+    <div id="watchlist-page" class="watchlist-page hidden">
+      <div class="wl-page-header">
+        <div class="wl-page-title-row">
+          <h2 class="wl-page-title">我的自选</h2>
+          <span id="wl-page-count" class="count-badge">0</span>
+          <span class="wl-status" id="wl-status"></span>
+          <button id="btn-wl-refresh" class="btn-icon" title="刷新全部价格">&#8635;</button>
+        </div>
+        <div class="wl-page-search">
+          <span class="search-icon">&#9906;</span>
+          <input type="text" id="wl-search-input" placeholder="搜索添加自选饰品…" autocomplete="off">
+          <button id="btn-wl-add" class="btn-fire btn-wl-add" disabled>添加</button>
+          <div id="wl-search-results" class="search-dropdown wl-dropdown"></div>
+        </div>
+      </div>
+      <div class="wl-page-table-wrap">
+        <table class="wl-table">
+          <colgroup>
+            <col>
+            <col style="width:100px"><col style="width:100px"><col style="width:100px">
+            <col style="width:72px"><col style="width:72px"><col style="width:72px">
+            <col style="width:90px"><col style="width:40px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="wl-th-name">饰品</th>
+              <th class="wl-th-price">当前价</th>
+              <th class="wl-th-price">求购价</th>
+              <th class="wl-th-price">添加价</th>
+              <th class="wl-th-chg">1D</th>
+              <th class="wl-th-chg">7D</th>
+              <th class="wl-th-chg">30D</th>
+              <th class="wl-th-num">添加时间</th>
+              <th class="wl-th-act"></th>
+            </tr>
+          </thead>
+          <tbody id="wl-table-body">
+            <tr class="wl-empty-row"><td colspan="9">暂无自选，在上方搜索添加</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>

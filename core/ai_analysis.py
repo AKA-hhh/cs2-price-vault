@@ -6,7 +6,7 @@ import time
 import requests
 import pandas as pd
 
-from .config import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_CHAT_MODEL, AI_TIMEOUT, AI_TEMPERATURE, CHAT_TEMPERATURE
+from . import config  # 通过 config.XXX 引用，确保 _write_env_value 更新后读取最新值
 from .prompts import prompt_mgr
 
 AI_MAX_RETRIES = 2  # 超时/网络错误时最多重试 2 次
@@ -163,18 +163,18 @@ def get_ai_analysis(df, item_name, period_days, recommendation, knowledge=None):
     返回:
       (success: bool | None, text: str)
     """
-    if not DEEPSEEK_API_KEY:
+    if not config.DEEPSEEK_API_KEY:
         return False, "未配置 DEEPSEEK_API_KEY，跳过AI分析。\n\n请在 .env 文件中添加:\nDEEPSEEK_API_KEY=your_key_here"
 
     prompt = _build_ai_prompt(df, item_name, period_days, recommendation, knowledge)
 
     url = "https://api.deepseek.com/chat/completions"
     headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {config.DEEPSEEK_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = json.dumps({
-        "model": DEEPSEEK_MODEL,
+        "model": config.DEEPSEEK_MODEL,
         "messages": [
             {
                 "role": "system",
@@ -182,7 +182,7 @@ def get_ai_analysis(df, item_name, period_days, recommendation, knowledge=None):
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": AI_TEMPERATURE,
+        "temperature": config.AI_TEMPERATURE,
         "max_tokens": 16384,
     })
 
@@ -191,7 +191,7 @@ def get_ai_analysis(df, item_name, period_days, recommendation, knowledge=None):
         try:
             label = f"(第{attempt + 1}次尝试)..." if attempt > 0 else "..."
             print(f"正在进行多维度技术分析{label}")
-            resp = requests.post(url, headers=headers, data=payload, timeout=AI_TIMEOUT)
+            resp = requests.post(url, headers=headers, data=payload, timeout=config.AI_TIMEOUT)
 
             if resp.status_code != 200:
                 return None, f"AI API 请求失败 (HTTP {resp.status_code})\n{resp.text[:300]}"
@@ -208,7 +208,7 @@ def get_ai_analysis(df, item_name, period_days, recommendation, knowledge=None):
                 time.sleep(wait)
             else:
                 return None, (
-                    f"AI 分析请求超时（已重试{AI_MAX_RETRIES}次，每次{AI_TIMEOUT}秒）。\n"
+                    f"AI 分析请求超时（已重试{AI_MAX_RETRIES}次，每次{config.AI_TIMEOUT}秒）。\n"
                     "建议: 1) 检查网络是否需要代理  2) 选择更短的查询周期  3) 稍后重试"
                 )
         except Exception as e:
@@ -234,7 +234,7 @@ def chat_with_context(messages, new_question):
           success=False → 未配置 API key
           success=None  → 调用失败, text 为错误信息
     """
-    if not DEEPSEEK_API_KEY:
+    if not config.DEEPSEEK_API_KEY:
         return False, "未配置 DEEPSEEK_API_KEY"
 
     # 追加用户追问
@@ -242,13 +242,13 @@ def chat_with_context(messages, new_question):
 
     url = "https://api.deepseek.com/chat/completions"
     headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {config.DEEPSEEK_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = json.dumps({
-        "model": DEEPSEEK_CHAT_MODEL,
+        "model": config.DEEPSEEK_CHAT_MODEL,
         "messages": messages,
-        "temperature": CHAT_TEMPERATURE,
+        "temperature": config.CHAT_TEMPERATURE,
         "max_tokens": 8192,
     })
 
@@ -257,7 +257,7 @@ def chat_with_context(messages, new_question):
         try:
             label = f"(第{attempt + 1}次尝试)..." if attempt > 0 else ""
             print(f"正在获取AI追问回复{label}")
-            resp = requests.post(url, headers=headers, data=payload, timeout=AI_TIMEOUT)
+            resp = requests.post(url, headers=headers, data=payload, timeout=config.AI_TIMEOUT)
 
             if resp.status_code != 200:
                 return None, f"AI API 请求失败 (HTTP {resp.status_code})\n{resp.text[:300]}"
@@ -277,7 +277,7 @@ def chat_with_context(messages, new_question):
                 time.sleep(wait)
             else:
                 return None, (
-                    f"AI 追问请求超时（已重试{AI_MAX_RETRIES}次，每次{AI_TIMEOUT}秒）。\n"
+                    f"AI 追问请求超时（已重试{AI_MAX_RETRIES}次，每次{config.AI_TIMEOUT}秒）。\n"
                     "请稍后重试。"
                 )
         except Exception as e:

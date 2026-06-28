@@ -46,6 +46,63 @@ print("正在加载饰品ID映射...")
 name_to_id, market_to_id, id_to_name = load_id_map(ID_MAP_FILE)
 print(f"已加载 {len(id_to_name)} 条饰品映射，服务就绪。")
 
+# ── 本地库存缓存持久化 ──
+INVENTORY_CACHE_FILE = os.path.join(BASE_DIR, "inventory.json")
+
+
+def _load_inventory_file():
+    if not os.path.exists(INVENTORY_CACHE_FILE):
+        return {}
+    try:
+        with open(INVENTORY_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                return {}
+            return data
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+
+def _save_inventory_file(cache):
+    slim = {}
+    for sid, entry in cache.items():
+        slim[sid] = {
+            "data": entry.get("data", {}),
+            "timestamp": entry.get("timestamp", 0),
+        }
+    with open(INVENTORY_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(slim, f, ensure_ascii=False, indent=2)
+
+
+def _add_chinese_names(items):
+    """通过 id_map 为库存物品补充中文名"""
+    import re as _re
+    for item in items:
+        mhn = item.get("market_hash_name", "")
+        cn = None
+        iid = market_to_id.get(mhn)
+        if iid:
+            cn = id_to_name.get(iid)
+        if not cn and mhn:
+            base = _re.sub(r'\s*\([^)]*\)\s*$', '', mhn).strip()
+            base = _re.sub(r'^(StatTrak™\s*|★\s*)', '', base).strip()
+            for mid_name, mid in market_to_id.items():
+                if base.lower() == mid_name.lower():
+                    cn = id_to_name.get(mid)
+                    break
+            if not cn:
+                for mid_name, mid in market_to_id.items():
+                    if base.lower() in mid_name.lower() or mid_name.lower() in base.lower():
+                        cn = id_to_name.get(mid)
+                        break
+        item["name_cn"] = cn
+
+
+# 从本地恢复库存缓存
+_inventory_cache = _load_inventory_file()
+if _inventory_cache:
+    print(f"已恢复 {len(_inventory_cache)} 条库存缓存")
+
 # ── 多会话存储 (内存 + 本地磁盘持久化) ──
 HISTORY_DIR = os.path.join(BASE_DIR, "history")
 os.makedirs(HISTORY_DIR, exist_ok=True)
@@ -554,6 +611,285 @@ def api_portfolio_advice():
         return jsonify({"error": f"AI 请求失败: {e}"}), 500
 
 
+# ═══════════════════ Steam 库存 ═══════════════════
+
+INVENTORY_CACHE_TTL = 300  # 缓存有效期 (秒)
+
+
+@app.route("/api/inventory/fetch", methods=["POST"])
+def api_inventory_fetch():
+    """输入 Steam ID → 拉取库存（不含价格，快速返回）"""
+    from core.steam_client import parse_steam_id, get_steam_inventory
+
+    data = request.get_json(force=True)
+    raw_id = (data.get("steam_id") or "").strip()
+    force_refresh = data.get("force", False)
+
+    if not raw_id:
+        return jsonify({"error": "请输入 Steam ID"}), 400
+
+    # 解析 SteamID64
+    steamid64, err = parse_steam_id(raw_id)
+    if err:
+        return jsonify({"error": err}), 400
+
+    # 检查缓存
+    cache_key = steamid64
+    if not force_refresh and cache_key in _inventory_cache:
+        cached = _inventory_cache[cache_key]
+        if time.time() - cached["timestamp"] < INVENTORY_CACHE_TTL:
+            # 缓存可能有旧数据没有 name_cn，补上
+            items = cached["data"].get("items", [])
+            if items and "name_cn" not in items[0]:
+                _add_chinese_names(items)
+                _save_inventory_file(_inventory_cache)
+            return jsonify({"ok": True, "cached": True, "steam_id": steamid64, **cached["data"]})
+
+    print(f"[库存] 正在拉取 SteamID: {steamid64}")
+
+    # 拉取库存（不查价格）
+    inv = get_steam_inventory(steamid64)
+    if not inv["success"]:
+        return jsonify({"error": inv["error"] or "库存获取失败"}), 500
+
+    items = inv["items"]
+    total_count = inv["total_count"]
+
+    # 通过 id_map 匹配中文名称
+    _add_chinese_names(items)
+
+    # 保留旧缓存中已有的价格（按 market_hash_name 合并）
+    old_entry = _inventory_cache.get(cache_key)
+    old_prices = {}
+    if old_entry:
+        for old_item in old_entry.get("data", {}).get("items", []):
+            mhn = old_item.get("market_hash_name", "")
+            if mhn and old_item.get("price"):
+                old_prices[mhn] = {
+                    "price": old_item["price"],
+                    "change_pct": old_item.get("change_pct", 0),
+                    "item_id": old_item.get("item_id", ""),
+                }
+    for item in items:
+        mhn = item.get("market_hash_name", "")
+        if mhn in old_prices:
+            item["price"] = old_prices[mhn]["price"]
+            item["change_pct"] = old_prices[mhn]["change_pct"]
+            item["item_id"] = old_prices[mhn]["item_id"]
+
+    # 去除重复市场名，统计唯一物品数和已标价
+    seen = set()
+    unique_items = []
+    priced_count = 0
+    total_value = 0.0
+    for item in items:
+        mhn = item.get("market_hash_name", "")
+        if mhn not in seen:
+            seen.add(mhn)
+            unique_items.append(mhn)
+        if item.get("price"):
+            priced_count += 1
+            total_value += item["price"] * item.get("amount", 1)
+
+    result_data = {
+        "items": items,
+        "total_count": len(items),  # 实际解析成功数量，非 Steam 估算值
+        "unique_count": len(unique_items),
+        "priced_count": priced_count,
+        "total_value": round(total_value, 2),
+        "costs": _inventory_cache.get(cache_key, {}).get("data", {}).get("costs", {}),
+    }
+    _inventory_cache[cache_key] = {"data": result_data, "timestamp": time.time()}
+    _save_inventory_file(_inventory_cache)
+
+    if total_count != len(items):
+        print(f"[库存] Steam报 {total_count} 件, 实际解析 {len(items)} 件 ({len(unique_items)} 种, {total_count - len(items)} 件未匹配)")
+    else:
+        print(f"[库存] 共 {len(items)} 件物品, {len(unique_items)} 种唯一物品")
+
+    return jsonify({"ok": True, "cached": False, "steam_id": steamid64, **result_data})
+
+
+@app.route("/api/inventory/prices", methods=["POST"])
+def api_inventory_prices():
+    """对已缓存的库存物品批量查询价格（csqaq 批量接口，50 个/次）"""
+    from core.steam_client import lookup_prices_batch
+
+    data = request.get_json(force=True)
+    steam_id = (data.get("steam_id") or "").strip()
+
+    # 找缓存
+    cache_key = None
+    if steam_id and steam_id in _inventory_cache:
+        cache_key = steam_id
+    elif _inventory_cache:
+        cache_key = list(_inventory_cache.keys())[-1]
+
+    if not cache_key:
+        return jsonify({"error": "没有缓存数据，请先获取库存"}), 400
+
+    inv = _inventory_cache[cache_key]["data"]
+    items = inv["items"]
+
+    # 去重：相同 market_hash_name 只查一次，同时统计总数
+    seen = {}
+    mhn_amounts = {}  # market_hash_name → 总数量
+    for item in items:
+        mhn = item.get("market_hash_name", "")
+        amt = item.get("amount", 1)
+        if mhn:
+            mhn_amounts[mhn] = mhn_amounts.get(mhn, 0) + amt
+            if mhn not in seen:
+                seen[mhn] = item
+
+    total = len(seen)
+    unique_names = list(seen.keys())
+    print(f"[价格] 批量查询 {total} 个唯一物品 ({len(unique_names) // 50 + 1} 批)...")
+
+    # 批量查询价格
+    prices = lookup_prices_batch(unique_names)
+
+    priced_count = 0
+    total_value = 0.0
+    for mhn, item in seen.items():
+        p = prices.get(mhn)
+        if p and p.get("price"):
+            priced_count += 1
+            total_value += p["price"] * mhn_amounts.get(mhn, item.get("amount", 1))
+
+    # 把价格写入缓存中的物品（持久化到 inventory.json）
+    for item in items:
+        mhn = item.get("market_hash_name", "")
+        p = prices.get(mhn)
+        if p:
+            item["price"] = p["price"]
+            item["buff_price"] = p.get("buff_price", 0)
+            item["yyyp_price"] = p.get("yyyp_price", 0)
+            item["steam_price"] = p.get("steam_price", 0)
+            item["item_id"] = p.get("item_id", "")
+
+    inv["priced_count"] = priced_count
+    inv["total_value"] = round(total_value, 2)
+    _inventory_cache[cache_key]["data"] = inv
+    _save_inventory_file(_inventory_cache)
+
+    print(f"[价格] 完成: {priced_count}/{total} 件已标价, 估值 ￥{total_value:.2f}")
+
+    return jsonify({
+        "ok": True,
+        "prices": prices,
+        "priced_count": priced_count,
+        "total_value": round(total_value, 2),
+    })
+
+
+@app.route("/api/inventory/cached", methods=["GET"])
+def api_inventory_cached():
+    """获取已缓存的库存数据"""
+    steam_id = request.args.get("steam_id", "").strip()
+    cached = None
+    sid = steam_id
+    if steam_id and steam_id in _inventory_cache:
+        cached = _inventory_cache[steam_id]
+    elif _inventory_cache:
+        sid = list(_inventory_cache.keys())[-1]
+        cached = _inventory_cache[sid]
+    if cached:
+        items = cached["data"].get("items", [])
+        if items and "name_cn" not in items[0]:
+            _add_chinese_names(items)
+        return jsonify({"ok": True, "steam_id": sid, **cached["data"]})
+    return jsonify({"ok": True, "items": [], "total_count": 0, "priced_count": 0, "total_value": 0})
+
+
+@app.route("/api/inventory/clear", methods=["POST"])
+def api_inventory_clear():
+    """清除库存缓存"""
+    _inventory_cache.clear()
+    _save_inventory_file({})
+    return jsonify({"ok": True})
+
+
+@app.route("/api/inventory/bind", methods=["POST"])
+def api_inventory_bind():
+    """绑定/更新 Steam ID"""
+    from core.steam_client import parse_steam_id
+    data = request.get_json(force=True)
+    raw_id = (data.get("steam_id") or "").strip()
+    if not raw_id:
+        return jsonify({"error": "请输入 Steam ID"}), 400
+    steamid64, err = parse_steam_id(raw_id)
+    if err:
+        return jsonify({"error": err}), 400
+    # 保存绑定信息
+    binding = {"steam_id": steamid64, "raw": raw_id}
+    with open(os.path.join(BASE_DIR, "inventory_binding.json"), "w", encoding="utf-8") as f:
+        json.dump(binding, f, ensure_ascii=False, indent=2)
+    return jsonify({"ok": True, "steam_id": steamid64})
+
+
+@app.route("/api/inventory/binding", methods=["GET"])
+def api_inventory_binding():
+    """获取当前绑定的 Steam ID"""
+    bp = os.path.join(BASE_DIR, "inventory_binding.json")
+    if os.path.exists(bp):
+        try:
+            with open(bp, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except (json.JSONDecodeError, IOError):
+            pass
+    return jsonify({"steam_id": "", "raw": ""})
+
+
+@app.route("/api/inventory/cost", methods=["POST"])
+def api_inventory_cost():
+    """设置某件物品的成本价"""
+    data = request.get_json(force=True)
+    steam_id = (data.get("steam_id") or "").strip()
+    assetid = str(data.get("assetid") or "")
+    cost = data.get("cost")  # None 表示清除
+
+    if not steam_id or not assetid:
+        return jsonify({"error": "缺少参数"}), 400
+
+    # 确保缓存中有这个 steam_id 的条目
+    if steam_id not in _inventory_cache:
+        _inventory_cache[steam_id] = {"data": {"items": [], "costs": {}}, "timestamp": 0}
+
+    entry = _inventory_cache[steam_id]
+    if "costs" not in entry["data"]:
+        entry["data"]["costs"] = {}
+
+    if cost is None or cost == "":
+        entry["data"]["costs"].pop(assetid, None)
+    else:
+        try:
+            entry["data"]["costs"][assetid] = round(float(cost), 2)
+        except (ValueError, TypeError):
+            return jsonify({"error": "无效的价格"}), 400
+
+    _save_inventory_file(_inventory_cache)
+
+    # 计算总成本和盈亏
+    items = entry["data"].get("items", [])
+    costs = entry["data"].get("costs", {})
+    total_cost = 0.0
+    total_value = 0.0
+    for item in items:
+        aid = item.get("assetid", "")
+        c = costs.get(aid, 0)
+        total_cost += c * item.get("amount", 1)
+        if item.get("price"):
+            total_value += item["price"] * item.get("amount", 1)
+
+    return jsonify({
+        "ok": True,
+        "total_cost": round(total_cost, 2),
+        "total_value": round(total_value, 2),
+        "pnl": round(total_value - total_cost, 2),
+    })
+
+
 # ═══════════════════ 多平台比价 ═══════════════════
 
 @app.route("/api/analyze", methods=["POST"])
@@ -949,6 +1285,8 @@ def _write_env_value(key, value):
             lines.append(f'{key}="{value}"\n')
         with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
+        # 同步更新 os.environ，确保 os.getenv() 也能读到新值
+        os.environ[key] = value
         # 同步更新内存中的模块变量
         import core.config as cfg
         if key == "API_TOKEN":
@@ -963,6 +1301,8 @@ def _write_env_value(key, value):
             cfg.AI_TEMPERATURE = float(value)
         elif key == "CHAT_TEMPERATURE":
             cfg.CHAT_TEMPERATURE = float(value)
+        elif key == "STEAM_COOKIE":
+            cfg.STEAM_COOKIE = value
         return True
     except Exception as e:
         print(f"写入 .env 失败: {e}")
@@ -971,13 +1311,15 @@ def _write_env_value(key, value):
 
 @app.route("/api/settings", methods=["GET"])
 def api_settings_get():
-    """获取当前设置"""
-    token = os.getenv("API_TOKEN") or ""
-    dk = os.getenv("DEEPSEEK_API_KEY") or ""
-    model = os.getenv("DEEPSEEK_MODEL") or "deepseek-v4-pro"
-    chat_model = os.getenv("DEEPSEEK_CHAT_MODEL") or "deepseek-v4-flash"
-    ai_temp = os.getenv("AI_TEMPERATURE") or "0"
-    chat_temp = os.getenv("CHAT_TEMPERATURE") or "0"
+    """获取当前设置（从模块属性读取，确保保存后即时反映）"""
+    from core.config import API_TOKEN, DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_CHAT_MODEL, AI_TEMPERATURE, CHAT_TEMPERATURE, STEAM_COOKIE
+    token = API_TOKEN or ""
+    dk = DEEPSEEK_API_KEY or ""
+    model = DEEPSEEK_MODEL or "deepseek-v4-pro"
+    chat_model = DEEPSEEK_CHAT_MODEL or "deepseek-v4-flash"
+    ai_temp = str(AI_TEMPERATURE) if AI_TEMPERATURE else "0"
+    steam_cookie = STEAM_COOKIE or ""
+    chat_temp = str(CHAT_TEMPERATURE) if CHAT_TEMPERATURE else "0"
     ui = _load_ui_settings()
     return jsonify({
         "api_token_masked": token,
@@ -990,6 +1332,8 @@ def api_settings_get():
         "accent": ui.get("accent", "green"),
         "font_size": ui.get("font_size", "normal"),
         "chart_engine": ui.get("chart_engine", "matplotlib"),
+        "inv_sort": ui.get("inv_sort", {}),
+        "steam_cookie_masked": "****" + steam_cookie[-8:] if len(steam_cookie) > 8 else (steam_cookie and "****"),
     })
 
 
@@ -1028,6 +1372,12 @@ def api_settings_save():
         if _write_env_value("CHAT_TEMPERATURE", chat_temp):
             saved_any = True
 
+    # Steam cookie (可以置空来清除)
+    steam_cookie = (data.get("steam_cookie") or "").strip()
+    if steam_cookie != "****":
+        if _write_env_value("STEAM_COOKIE", steam_cookie):
+            saved_any = True
+
     # UI preferences
     ui = {
         "theme": data.get("theme", "dark"),
@@ -1039,6 +1389,20 @@ def api_settings_save():
     saved_any = True
 
     return jsonify({"ok": True, "saved": saved_any})
+
+
+@app.route("/api/settings/inventory-sort", methods=["POST"])
+def api_inventory_sort_save():
+    """保存库存列表排序偏好"""
+    data = request.get_json(force=True)
+    ui = _load_ui_settings()
+    ui["inv_sort"] = {
+        "key": data.get("key", ""),
+        "asc": data.get("asc", True),
+        "mode": data.get("mode", "pct"),
+    }
+    _save_ui_settings(ui)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/settings/my-ip", methods=["GET"])

@@ -1,0 +1,20 @@
+    <!-- ── 加载 / 错误 ── -->
+    <div id="loading-screen" class="loading-screen hidden">
+      <div class="loader-card">
+        <div class="loader-ring">
+          <svg class="loader-ring-svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" class="loader-ring-track"/>
+            <circle cx="50" cy="50" r="42" class="loader-ring-fill"/>
+          </svg>
+          <span class="loader-diamond">&#9670;</span>
+        </div>
+        <p class="loader-item-name" id="loading-item-name"></p>
+        <p class="loader-status" id="loading-text">正在获取数据…</p>
+        <div class="loader-dots">
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+        </div>
+      </div>
+    </div>
+    <div id="error-toast" class="toast error-toast hidden"></div>

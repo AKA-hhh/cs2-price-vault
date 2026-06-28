@@ -1,0 +1,59 @@
+    <!-- ── 大盘仪表盘 ── -->
+    <div id="dashboard" class="dashboard">
+      <div class="dash-title-row">
+        <h2 class="dash-title">大盘仪表盘</h2>
+        <span class="dash-live">LIVE</span>
+        <button id="btn-refresh" class="btn-icon" title="刷新数据">&#8635;</button>
+      </div>
+
+      <div class="dash-row dash-cards" id="dash-cards">
+        <div class="dash-card">
+          <div class="dc-label">饰品指数</div>
+          <div class="dc-value" id="dc-index">--</div>
+          <div class="dc-sub" id="dc-index-chg">--</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-label">市场情绪</div>
+          <div class="dc-value" id="dc-sentiment">--</div>
+          <div class="dc-sub" id="dc-sentiment-lvl">--</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-label">Steam 在线</div>
+          <div class="dc-value" id="dc-online">--</div>
+          <div class="dc-sub" id="dc-online-chg">--</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-label">今日涨跌</div>
+          <div class="dc-value" id="dc-rate">--</div>
+          <div class="dc-sub" id="dc-rate-sub">--</div>
+        </div>
+      </div>
+
+      <div class="dash-row dash-2col">
+        <section class="panel dash-panel">
+          <div class="panel-header">
+            <span class="panel-dot lapis"></span>
+            <h2 class="panel-title">饰品指数</h2>
+            <span class="panel-subtitle">TOP 12</span>
+          </div>
+          <div class="panel-body" id="dash-indices"></div>
+        </section>
+        <section class="panel dash-panel">
+          <div class="panel-header">
+            <span class="panel-dot cinnabar"></span>
+            <h2 class="panel-title">异动监测</h2>
+            <span class="panel-subtitle">实时</span>
+          </div>
+          <div class="panel-body" id="dash-alterations"></div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-dot amethyst"></span>
+          <h2 class="panel-title">大家都在看</h2>
+          <span class="panel-subtitle">热门饰品</span>
+        </div>
+        <div class="panel-body" id="dash-viewcount"></div>
+      </section>
+    </div>

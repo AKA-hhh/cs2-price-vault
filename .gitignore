@@ -17,6 +17,9 @@ build/
 .venv/
 venv/
 
+# ── Backups ──
+*.bak
+
 # ── User data (runtime artifacts) ──
 .claude
 history/
@@ -24,7 +27,9 @@ analysis_output/
 portfolio.json
 watchlist.json
 settings.json
-CLAUDE.md
+inventory.json
+inventory_binding.json
+knowledge_base.json
 GIT_GUIDE.md
 
 # ── OS ──

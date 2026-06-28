@@ -19,6 +19,13 @@ ID_MAP_FILE = os.path.join(_BASE_DIR, "data", "饰品id_20260423.json")
 # 超时设置 (秒)
 REQUEST_TIMEOUT = 15
 AI_TIMEOUT = 120
+STEAM_INVENTORY_TIMEOUT = 30   # Steam 库存 API 请求超时
+
+# Steam 登录 Cookie (用于完整库存获取，浏览器 F12 → steamcommunity.com → steamLoginSecure)
+STEAM_COOKIE = os.getenv("STEAM_COOKIE", "")
+
+# Steam API 请求间隔 (秒)，防止触发 429 限流
+STEAM_REQUEST_DELAY = 1.5
 
 # AI 模型参数
 AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0"))

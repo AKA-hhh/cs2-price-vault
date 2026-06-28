@@ -1,0 +1,56 @@
+    <!-- ═══════════════ Steam 库存页 ═══════════════ -->
+    <div id="inventory-page" class="inv-page hidden">
+      <div class="inv-sticky-top">
+        <div class="inv-header">
+          <h2 class="inv-title">&#128230; Steam 库存</h2>
+          <span class="inv-subtitle" id="inv-subtitle">尚未绑定 Steam 账号，<span id="btn-inv-bind" class="inv-bind-link">点击绑定</span>后获取 CS2 饰品库存（需库存设为公开）</span><span class="inv-subtitle-note"> · 注：Steam 公开接口未登录状态下可能不返回交易冷却期物品</span>
+        </div>
+        <div class="inv-controls">
+          <button id="btn-inv-fetch" class="btn-confirm-ok hidden">获取库存</button>
+          <button id="btn-inv-prices" class="btn-confirm-ok hidden">查询价格</button>
+          <span id="inv-status" class="inv-status"></span>
+          <span id="inv-updated" class="inv-updated hidden"></span>
+        </div>
+        <div class="inv-summary hidden" id="inv-summary">
+          <div class="inv-sum-item"><span class="inv-sum-label">总物品</span><span class="inv-sum-value" id="inv-total-count">0</span></div>
+          <div class="inv-sum-item"><span class="inv-sum-label">估值</span><span class="inv-sum-value" id="inv-total-value">¥0</span></div>
+          <div class="inv-sum-item"><span class="inv-sum-label">总成本</span><span class="inv-sum-value" id="inv-total-cost">¥0</span></div>
+          <div class="inv-sum-item"><span class="inv-sum-label">盈亏</span><span class="inv-sum-value" id="inv-pnl">¥0</span></div>
+        </div>
+        <div class="inv-filters" id="inv-filters" style="display:none;">
+          <span class="inv-filter-label">筛选:</span>
+          <button class="inv-filter-chip active" data-filter="all">全部</button>
+          <button class="inv-filter-chip" data-filter="pistol">手枪</button>
+          <button class="inv-filter-chip" data-filter="rifle">步枪</button>
+          <button class="inv-filter-chip" data-filter="smg">微冲</button>
+          <button class="inv-filter-chip" data-filter="heavy">重武器</button>
+          <button class="inv-filter-chip" data-filter="knife">刀具</button>
+          <button class="inv-filter-chip" data-filter="gloves">手套</button>
+          <button class="inv-filter-chip" data-filter="sticker">贴纸</button>
+          <button class="inv-filter-chip" data-filter="container">箱子/胶囊</button>
+          <button class="inv-filter-chip" data-filter="priced">有价格</button>
+        </div>
+      </div>
+      <div class="inv-table-wrap">
+        <table class="inv-table" id="inv-table">
+          <thead>
+            <tr>
+              <th style="width:112px;"></th>
+              <th>名称</th>
+              <th class="sortable" data-sort="wear">磨损 <span class="sort-arrow"></span></th>
+              <th class="sortable" data-sort="quality">品质 <span class="sort-arrow"></span></th>
+              <th class="sortable" data-sort="rarity">稀有度 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="amount">数量 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="cost">成本价 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="price">参考价 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="invest">投入 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="mktval">市值 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="pnl">盈亏 <span class="sort-arrow"></span></th>
+              <th class="inv-col-num sortable" data-sort="pnlpct">盈亏率 <span class="sort-arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+        <div id="inv-empty" class="inv-empty" style="display:none;">暂无库存数据</div>
+      </div>
+    </div>

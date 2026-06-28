@@ -1,0 +1,25 @@
+    <!-- ═══════════════ 知识库 ═══════════════ -->
+    <div id="kb-page" class="kb-page hidden">
+      <div class="kb-header">
+        <h2 class="kb-title">&#9734; cs2事件</h2>
+        <div class="kb-search-wrap">
+          <input type="text" id="kb-search" class="kb-search-input" placeholder="搜索cs2事件…" autocomplete="off">
+        </div>
+        <button id="btn-kb-add" class="btn-fire" style="padding:7px 16px;font-size:0.75rem;flex-shrink:0;width:auto;margin-top:0;">+ 新增</button>
+      </div>
+      <div class="kb-grid" id="kb-list">
+        <div class="kb-empty">暂无条目，点击上方按钮添加</div>
+      </div>
+      <div class="kb-pagination" id="kb-pagination">
+        <span class="kb-total" id="kb-total">共 0 条</span>
+        <div class="kb-pagination-center">
+          <button id="kb-prev-btn" class="idmap-page-btn" disabled>&lsaquo;</button>
+          <span id="kb-page-btns" class="kb-page-btns"></span>
+          <button id="kb-next-btn" class="idmap-page-btn">&rsaquo;</button>
+          <span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:8px;">前往</span>
+          <input type="number" id="kb-jump-input" class="idmap-jump-input" min="1" placeholder="">
+          <span style="font-size:0.7rem;color:var(--text-tertiary);">页</span>
+        </div>
+        <span class="kb-total-spacer"></span>
+      </div>
+    </div>

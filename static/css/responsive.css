@@ -1,0 +1,26 @@
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  :root { --sidebar-w: 248px; }
+  #sidebar { width: 248px; min-width: 248px; }
+  #main-area { padding: var(--space-4); }
+  .dash-cards { grid-template-columns: repeat(2, 1fr); }
+  .row-2col, .dash-2col { grid-template-columns: 1fr; }
+  .analysis-grid { grid-template-columns: 1fr; height: auto; }
+  .ag-left .chart-panel img { max-height: 400px; }
+  .ag-right .chat-messages { max-height: 300px; }
+  .pf-summary-row { grid-template-columns: repeat(2, 1fr); }
+  .kb-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  #app-layout { flex-direction: column; }
+  #sidebar { width: 100%; min-width: 0; max-height: 45vh; }
+  #main-area { padding: var(--space-3); }
+  .dash-cards { grid-template-columns: 1fr 1fr; }
+  .row-2col, .dash-2col { grid-template-columns: 1fr; }
+  .pf-summary-row { grid-template-columns: 1fr 1fr; }
+  .settings-drawer { width: 100%; }
+  .dc-value { font-size: 1.8rem; }
+  .kb-grid { grid-template-columns: repeat(2, 1fr); }
+}

@@ -1,0 +1,84 @@
+/* ═══════════════════════════════════════════════
+   DASHBOARD
+   ═══════════════════════════════════════════════ */
+.dash-row { display: grid; gap: var(--space-4); margin-bottom: var(--space-4); }
+
+.dash-title-row {
+  display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);
+}
+.dash-title {
+  font-family: var(--font-display); font-size: var(--text-xl); font-weight: 600;
+  font-style: italic; color: var(--text-primary); letter-spacing: 0.01em; margin: 0;
+}
+.dash-live {
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600;
+  color: var(--malachite); letter-spacing: 0.06em;
+  padding: 1px 8px; border-radius: 3px; background: var(--malachite-bg);
+}
+
+.dash-cards { grid-template-columns: repeat(4, 1fr); }
+.dash-card {
+  position: relative; overflow: hidden;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: var(--space-5);
+  box-shadow: var(--shadow-sm); transition: all var(--dur) var(--ease);
+}
+.dash-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); opacity: 0; transition: opacity var(--dur) var(--ease);
+}
+.dash-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.dash-card:hover::after { opacity: 0.5; }
+
+.dc-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-tertiary); letter-spacing: 0.05em;
+  margin-bottom: var(--space-1); text-transform: uppercase;
+}
+.dc-value {
+  font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 700;
+  font-style: italic; color: var(--text-primary); line-height: 1.1; letter-spacing: -0.01em;
+}
+.dc-sub {
+  font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 500;
+  margin-top: var(--space-1); color: var(--text-secondary);
+}
+.dc-sub.up   { color: var(--cinnabar); }
+.dc-sub.down { color: var(--malachite); }
+
+.dash-2col { grid-template-columns: 1fr 1fr; }
+.dash-panel { margin-bottom: 0; }
+.dash-panel .panel-header { padding: 10px 14px; }
+.dash-panel .panel-body  { padding: 10px 14px; }
+
+/* Index / Alteration rows */
+.idx-row, .alt-row {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 5px 0; border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--text-sm);
+}
+.idx-row:last-child, .alt-row:last-child { border-bottom: none; }
+.idx-row:hover, .alt-row:hover { background: var(--bg-raised); margin: 0 -4px; padding: 5px 4px; border-radius: var(--radius-sm); }
+.idx-name, .alt-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); font-size: var(--text-sm); }
+.idx-val { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 500; color: var(--text-secondary); min-width: 60px; text-align: right; }
+.idx-chg, .alt-diff { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; min-width: 60px; text-align: right; }
+.alt-key { font-size: var(--text-xs); color: var(--text-tertiary); background: var(--bg-inset); padding: 1px 5px; border-radius: var(--radius-sm); flex-shrink: 0; }
+.alt-val { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); flex-shrink: 0; }
+.alt-diff { min-width: 48px; }
+
+.up   { color: var(--cinnabar); }
+.down { color: var(--malachite); }
+
+/* View Count */
+.vc-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); }
+.vc-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3); border-radius: var(--radius); cursor: pointer;
+  border: 1px solid var(--border-subtle); background: var(--bg-surface);
+  transition: all var(--dur-fast) var(--ease);
+}
+.vc-item:hover { border-color: var(--border-default); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.vc-item img { width: 88px; height: 66px; object-fit: cover; border-radius: var(--radius-sm); background: var(--bg-inset); flex-shrink: 0; }
+.vc-name { font-size: var(--text-sm); color: var(--text-primary); flex: 1; line-height: 1.4; min-width: 0; }
+.vc-rank { font-size: var(--text-sm); font-family: var(--font-mono); font-weight: 600; flex-shrink: 0; min-width: 34px; text-align: right; }
+.empty-hint { text-align: center; color: var(--text-tertiary); font-size: var(--text-sm); padding: var(--space-4) 0; }

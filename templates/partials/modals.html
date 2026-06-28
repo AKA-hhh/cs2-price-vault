@@ -1,0 +1,151 @@
+    <!-- Steam 绑定弹窗 -->
+    <div id="inv-bind-modal" class="pf-modal hidden">
+      <div class="pf-modal-overlay"></div>
+      <div class="pf-modal-content panel" style="max-width:480px;">
+        <div class="panel-header">
+          <h3>绑定 Steam 账号</h3>
+          <button id="inv-bind-close" class="btn-close">&times;</button>
+        </div>
+        <div class="pf-modal-body" style="padding:var(--space-5);">
+          <p style="font-size:var(--text-sm);color:var(--text-tertiary);margin:0 0 var(--space-3) 0;">
+            输入 SteamID64、个人资料链接或自定义 ID。库存需设为<b>公开</b>才能读取。
+          </p>
+          <input type="text" id="inv-bind-input" class="inv-steam-input" style="width:100%;margin-bottom:var(--space-3);" placeholder="SteamID64 / steamcommunity.com/id/xxx…" autocomplete="off">
+          <div style="display:flex;gap:var(--space-2);justify-content:flex-end;">
+            <span id="inv-bind-msg" class="settings-msg"></span>
+            <button id="inv-bind-cancel" class="btn-confirm-cancel">取消</button>
+            <button id="inv-bind-confirm" class="btn-confirm-ok">确认绑定</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模板管理弹窗 -->
+    <div id="prompt-mgr-modal" class="pf-modal hidden">
+      <div class="pf-modal-overlay"></div>
+      <div class="pf-modal-content panel" style="max-width:88vw;max-height:90vh;">
+        <div class="panel-header">
+          <h3 id="prompt-mgr-title">管理模板</h3>
+          <button id="prompt-mgr-close" class="btn-close">&times;</button>
+        </div>
+        <div class="prompt-mgr-body">
+          <div class="prompt-mgr-sidebar">
+            <div class="prompt-mgr-list" id="prompt-mgr-list"></div>
+            <button id="prompt-mgr-new" class="prompt-mgr-new-btn">+ 新建模板</button>
+          </div>
+          <div class="prompt-mgr-editor">
+            <label class="pf-edit-label">模板名称</label>
+            <input type="text" id="prompt-mgr-name" class="pf-edit-input" placeholder="给模板起个名字…">
+            <label class="pf-edit-label">模板内容</label>
+            <textarea id="prompt-mgr-text" class="prompt-mgr-textarea" rows="14" placeholder="输入提示词内容…"></textarea>
+            <div class="prompt-mgr-vars" id="prompt-mgr-vars" style="display:none;"></div>
+            <div class="prompt-mgr-actions">
+              <span id="prompt-mgr-msg" class="settings-msg"></span>
+              <button id="prompt-mgr-save" class="btn-confirm-ok">保存</button>
+              <button id="prompt-mgr-set-active" class="btn-confirm-ok" style="background:var(--accent-dark);">设为当前</button>
+              <button id="prompt-mgr-delete" class="btn-confirm-cancel" style="color:var(--cinnabar);border-color:var(--cinnabar);">删除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 知识库查看弹窗 ═══════════════ -->
+    <div id="kb-view-modal" class="pf-modal hidden">
+      <div class="pf-modal-overlay"></div>
+      <div class="pf-modal-content panel" style="max-width:600px;">
+        <div class="panel-header">
+          <h3 id="kb-view-title">--</h3>
+          <button id="kb-view-close" class="btn-close">&times;</button>
+        </div>
+        <div class="kb-view-body">
+          <div class="kb-view-tags" id="kb-view-tags"></div>
+          <div class="kb-view-content" id="kb-view-content"></div>
+          <div class="kb-view-time" id="kb-view-time"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 知识库编辑弹窗 ═══════════════ -->
+    <div id="kb-modal" class="pf-modal hidden">
+      <div class="pf-modal-overlay"></div>
+      <div class="pf-modal-content panel" style="max-width:520px;">
+        <div class="panel-header">
+          <h3 id="kb-modal-title">新增知识条目</h3>
+          <button id="kb-modal-close" class="btn-close">&times;</button>
+        </div>
+        <div class="kb-modal-body">
+          <label class="pf-edit-label">标题</label>
+          <input type="text" id="kb-edit-title" class="pf-edit-input" placeholder="例如：2024年5月武器箱机制调整">
+          <label class="pf-edit-label">事件日期</label>
+          <div class="kb-date-wrap">
+            <input type="date" id="kb-edit-date" class="kb-date-input">
+          </div>
+          <label class="pf-edit-label">内容（支持分点分行）</label>
+          <textarea id="kb-edit-content" class="kb-edit-textarea" rows="10" placeholder="1. xxx&#10;2. xxx"></textarea>
+          <label class="pf-edit-label">标签（逗号分隔）</label>
+          <input type="text" id="kb-edit-tags" class="pf-edit-input" placeholder="更新,武器箱,机制">
+          <span id="kb-edit-msg" class="settings-msg" style="min-height:18px;"></span>
+          <button id="btn-kb-save" class="btn-fire" style="padding:8px 0;width:100%;">保存</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ═══════════════════════════════
+  IMAGE VIEWER MODAL
+  ═══════════════════════════════ -->
+<div id="img-viewer" class="img-viewer hidden">
+  <div class="img-viewer-bg"></div>
+  <div class="img-viewer-content">
+    <button id="img-viewer-close" class="img-viewer-close">&times;</button>
+    <img id="img-viewer-img" src="" alt="走势图">
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+  ID MAP PREVIEW MODAL
+  ═══════════════════════════════ -->
+<div id="idmap-modal" class="idmap-modal hidden">
+  <div class="idmap-modal-overlay"></div>
+  <div class="idmap-modal-content panel">
+    <div class="idmap-modal-header">
+      <h3>饰品品类预览</h3>
+      <input type="text" id="idmap-search-input" class="idmap-search-input" placeholder="搜索名称或ID…" autocomplete="off">
+      <span style="font-size:0.7rem;color:var(--text-tertiary);white-space:nowrap;" id="idmap-modal-info"></span>
+      <button id="idmap-modal-close" class="btn-close">&times;</button>
+    </div>
+    <div class="idmap-modal-body" id="idmap-modal-body">
+      <table class="idmap-table">
+        <thead><tr><th>ID</th><th>中文名</th><th>市场名</th></tr></thead>
+        <tbody id="idmap-table-body"></tbody>
+      </table>
+    </div>
+    <div class="idmap-modal-footer">
+      <button id="idmap-prev-btn" class="idmap-page-btn" disabled>&lsaquo;</button>
+      <span id="idmap-page-btns" class="idmap-page-btns"></span>
+      <button id="idmap-next-btn" class="idmap-page-btn">&rsaquo;</button>
+      <span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:8px;">前往</span>
+      <input type="number" id="idmap-jump-input" class="idmap-jump-input" min="1" placeholder="">
+      <span style="font-size:0.7rem;color:var(--text-tertiary);">页</span>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="pf-toast" class="pf-toast hidden">✓ 已保存</div>
+
+  <!-- ═══════════════════════════════
+    CONFIRM DIALOG
+    ═══════════════════════════════ -->
+  <div id="confirm-dialog" class="pf-modal hidden">
+    <div class="pf-modal-overlay"></div>
+    <div class="pf-modal-content panel" style="max-width:360px;">
+      <div class="panel-body" style="text-align:center;padding:24px 20px;">
+        <p id="confirm-msg" style="font-size:var(--text-sm);color:var(--text-primary);margin-bottom:20px;line-height:1.6;"></p>
+        <div class="confirm-actions">
+          <button id="btn-confirm-cancel" class="btn-confirm-cancel">取消</button>
+          <button id="btn-confirm-ok" class="btn-confirm-ok">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>

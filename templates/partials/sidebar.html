@@ -1,0 +1,59 @@
+  <!-- ═════════════════════════════
+    SIDEBAR
+    ═════════════════════════════ -->
+  <aside id="sidebar">
+    <div id="sidebar-search-area">
+      <nav class="nav-btns">
+        <button id="btn-dashboard" class="btn-dash active" title="大盘仪表盘">
+          <span class="btn-dash-icon">&#9632;</span> 大盘
+        </button>
+        <button id="btn-inventory-page" class="btn-dash" title="Steam库存">
+          <span class="btn-dash-icon">&#128230;</span> 库存
+        </button>
+      </nav>
+      <nav class="nav-btns">
+        <button id="btn-watchlist-page" class="btn-dash" title="自选列表">
+          <span class="btn-dash-icon">&#9733;</span> 自选
+        </button>
+        <button id="btn-kb-page" class="btn-dash" title="cs2事件">
+          <span class="btn-dash-icon">&#9734;</span> 事件
+        </button>
+        <button id="btn-prompts-page" class="btn-dash" title="提示词管理">
+          <span class="btn-dash-icon">&#9998;</span> 提示词
+        </button>
+      </nav>
+
+      <div class="search-input-wrap">
+        <span class="search-icon">&#9906;</span>
+        <input type="text" id="search-input"
+               placeholder="搜索饰品名称…"
+               autocomplete="off">
+        <div id="search-results" class="search-dropdown"></div>
+      </div>
+
+      <div id="period-picker" class="period-picker">
+        <button data-days="7">7D</button>
+        <button data-days="30" class="active">1M</button>
+        <button data-days="90">3M</button>
+        <button data-days="180">6M</button>
+        <button data-days="365">1Y</button>
+        <button id="btn-custom-days" data-days="0">输入</button>
+        <input type="number" id="input-custom-days" class="custom-days-input"
+               placeholder="天" min="1" max="730" style="display:none;">
+      </div>
+
+      <button id="btn-analyze" class="btn-fire" disabled>
+        <span class="btn-fire-icon">&#9654;</span> 开始分析
+      </button>
+    </div>
+
+    <div id="history-section">
+      <div class="section-header">
+        <span class="section-title">分析历史</span>
+        <span id="history-count" class="count-badge">0</span>
+      </div>
+      <div id="history-list" class="history-list">
+        <div class="history-empty">暂无历史记录</div>
+      </div>
+    </div>
+  </aside>

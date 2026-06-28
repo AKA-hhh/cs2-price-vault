@@ -1,0 +1,136 @@
+<!-- ═══════════════════════════════
+  SETTINGS DRAWER
+  ═══════════════════════════════ -->
+<div id="settings-overlay" class="overlay hidden"></div>
+<aside id="settings-drawer" class="settings-drawer hidden">
+  <div class="settings-header">
+    <h2 class="settings-title">&#9881; 设置</h2>
+    <button id="btn-settings-close" class="btn-close" title="关闭">&times;</button>
+  </div>
+  <div class="settings-body">
+    <fieldset class="settings-group">
+      <legend class="settings-legend">API 配置</legend>
+      <label class="settings-label">
+        <span>CSQaQ API Token</span>
+        <div class="settings-input-wrap">
+          <input type="password" id="set-api-token" class="settings-input" placeholder="输入 API Token" autocomplete="off">
+          <button class="btn-eye" data-target="set-api-token" title="显示/隐藏" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </label>
+      <label class="settings-label">
+        <span>DeepSeek API Key</span>
+        <div class="settings-input-wrap">
+          <input type="password" id="set-deepseek-key" class="settings-input" placeholder="sk-..." autocomplete="off">
+          <button class="btn-eye" data-target="set-deepseek-key" title="显示/隐藏" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </label>
+      <label class="settings-label">
+        <span>分析模型</span>
+        <select id="set-deepseek-model" class="settings-input">
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+        </select>
+      </label>
+      <label class="settings-label">
+        <span>对话模型</span>
+        <select id="set-deepseek-chat-model" class="settings-input">
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+        </select>
+      </label>
+      <div class="settings-label-row">
+        <div class="settings-label">
+          <span>分析温度 <em style="font-style:normal;color:var(--accent);" id="val-ai-temperature">0</em></span>
+          <input type="range" id="set-ai-temperature" min="0" max="2" step="0.1" value="0" class="settings-range">
+        </div>
+        <div class="settings-label">
+          <span>对话温度 <em style="font-style:normal;color:var(--accent);" id="val-chat-temperature">0</em></span>
+          <input type="range" id="set-chat-temperature" min="0" max="2" step="0.1" value="0" class="settings-range">
+        </div>
+      </div>
+      <p style="font-size:0.65rem;color:var(--text-tertiary);margin-top:2px;">温度: 0=严谨确定, 1=平衡, 2=创意发散</p>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">Steam 登录</legend>
+      <p style="font-size:0.65rem;color:var(--text-tertiary);margin-bottom:6px;">填入 Steam 登录 Cookie 可获取完整库存（含交易冷却物品）。浏览器登录 Steam 后 F12 → Application → Cookies → steamcommunity.com → 复制 steamLoginSecure 的值。</p>
+      <label class="settings-label">
+        <span>steamLoginSecure</span>
+        <div class="settings-input-wrap">
+          <input type="password" id="set-steam-cookie" class="settings-input" placeholder="粘贴 steamLoginSecure 值…" autocomplete="off">
+          <button class="btn-eye" data-target="set-steam-cookie" title="显示/隐藏" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </label>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">IP 白名单</legend>
+      <p class="settings-hint" style="font-size:0.7rem;color:var(--text-tertiary);margin-bottom:6px;">csqaq API 需要绑定 IP 后才能正常请求。</p>
+      <div class="ip-info" style="display:flex;gap:16px;margin-bottom:10px;font-size:0.7rem;color:var(--text-secondary);">
+        <span>本地: <strong id="my-local-ip">--</strong></span>
+        <span>公网: <strong id="my-public-ip">--</strong></span>
+      </div>
+      <button id="btn-bind-ip" class="btn-fire" style="width:100%;">绑定当前 IP</button>
+      <span id="bind-ip-result" class="settings-msg" style="margin-top:8px;display:block;"></span>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">饰品品类数据</legend>
+      <p class="settings-hint" style="font-size:0.7rem;color:var(--text-tertiary);margin-bottom:6px;">
+        从 <a href="https://docs.csqaq.com/api-337690892" target="_blank" style="color:var(--accent);">csqaq 官方文档</a> 下载最新饰品 ID 映射 JSON，然后在此上传更新。
+      </p>
+      <div class="idmap-info" style="display:flex;gap:16px;margin-bottom:6px;font-size:0.7rem;color:var(--text-secondary);">
+        <span>当前: <strong id="idmap-count">--</strong> 个饰品</span>
+        <span>文件: <strong id="idmap-filename" class="idmap-filename-link" title="点击预览内容">--</strong></span>
+        <span>大小: <strong id="idmap-size">--</strong></span>
+      </div>
+      <div id="idmap-new-info" class="idmap-info" style="display:none;gap:16px;margin-bottom:10px;font-size:0.7rem;color:var(--accent);">
+        <span>新文件: <strong id="idmap-new-count">--</strong> 个饰品</span>
+        <span>文件: <strong id="idmap-new-filename">--</strong></span>
+        <span>大小: <strong id="idmap-new-size">--</strong></span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label class="btn-fire" style="cursor:pointer;padding:8px 16px;font-size:0.75rem;">
+          <input type="file" id="idmap-file-input" accept=".json" style="display:none;">
+          &#128194; 选择 JSON
+        </label>
+        <span id="idmap-filename-display" style="font-size:0.7rem;color:var(--text-tertiary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">未选择文件</span>
+        <button id="btn-idmap-upload" class="btn-fire" style="padding:8px 16px;font-size:0.75rem;" disabled>上传替换</button>
+      </div>
+      <span id="idmap-upload-result" class="settings-msg" style="margin-top:8px;display:block;"></span>
+    </fieldset>
+    <fieldset class="settings-group">
+      <legend class="settings-legend">外观风格</legend>
+      <div class="settings-label">
+        <span>图表引擎</span>
+        <div class="toggle-row" id="set-chart-engine">
+          <button data-value="matplotlib" class="toggle-btn active">Matplotlib</button>
+          <button data-value="plotly" class="toggle-btn">Plotly 交互式</button>
+        </div>
+      </div>
+      <div class="settings-label">
+        <span>主题</span>
+        <div class="toggle-row" id="set-theme">
+          <button data-value="dark" class="toggle-btn active">&#9790; 暗色</button>
+          <button data-value="light" class="toggle-btn">&#9788; 亮色</button>
+        </div>
+      </div>
+      <div class="settings-label">
+        <span>强调色</span>
+        <div class="color-row" id="set-accent">
+          <button data-value="green" class="color-btn active" style="--c:#5B8C5A"><span>&#10003;</span></button>
+          <button data-value="cyan" class="color-btn" style="--c:#5A8FA8"><span>&#10003;</span></button>
+          <button data-value="gold" class="color-btn" style="--c:#B8944C"><span>&#10003;</span></button>
+          <button data-value="purple" class="color-btn" style="--c:#8B6BAE"><span>&#10003;</span></button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="settings-footer">
+    <span id="settings-msg" class="settings-msg"></span>
+    <button id="btn-settings-save" class="btn-fire">保存设置</button>
+  </div>
+</aside>
