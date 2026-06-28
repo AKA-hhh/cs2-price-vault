@@ -138,11 +138,7 @@ function showInventoryPage() {
     loadBinding().then(() => {
       loadCachedInventory().then(() => {
       if (invCurrentSteamId) {
-        fetchInventory().then(() => {
-          // 自动查询价格（如果有未标价物品）
-          const unpriced = invAllItems.filter(i => i.price == null).length;
-          if (unpriced > 0) fetchInventoryPrices();
-        });
+        fetchInventory().then(() => fetchInventoryPrices());
       }
     });
   });
@@ -158,9 +154,18 @@ async function loadCachedInventory() {
       invCosts = d.costs || {};
       renderInventory(d.items);
       recalcSummary();
+      // 优先用持久化缓存的走势图立即渲染
+      if (d.sparklines) {
+        for (const [gid, prices] of Object.entries(d.sparklines)) {
+          const svg = drawSparklineSvg(prices);
+          if (svg) _sparklineSvg[gid] = svg;
+        }
+        applyCachedSparklines();
+      }
+      // 后台静默刷新（后端 12h TTL，命中缓存时不调 csqaq API）
+      fetchAllSparklines();
       show($btnInvPrices);
-      show($invUpdated);
-      $invUpdated.textContent = "上次缓存";
+      // 不显示时间戳 — 等 fetchInventory 成功后更新
     }
   } catch (e) { /* ignore */ }
 }
@@ -194,7 +199,8 @@ async function fetchInventory() {
     invCosts = d.costs || {};
     renderInventory(invAllItems);
     recalcSummary();
-    $invStatus.textContent = `已获取 ${invAllItems.length} 件物品 (${d.unique_count || 0} 种)`;
+    fetchAllSparklines();
+    $invStatus.textContent = `已获取 ${invAllItems.length} 件物品 (${d.unique_count || 0} 种)，正在查询价格…`;
     $invStatus.className = "inv-status ok";
     $invUpdated.textContent = new Date().toLocaleString("zh-CN");
     show($btnInvPrices);
@@ -241,6 +247,7 @@ async function fetchInventoryPrices() {
 
     renderInventory(invAllItems);
     recalcSummary();
+    fetchAllSparklines();
     $invStatus.textContent = `已获取库存 (${invAllItems.length} 件), 估值 ¥${fmtNum(d.total_value)}`;
     $invStatus.className = "inv-status ok";
   } catch (e) {
@@ -305,7 +312,7 @@ function renderInventory(items) {
   const grouped = groupByHash(items);
   const filtered = filterInvItems(grouped);
   if (filtered.length === 0) {
-    $invTbody.innerHTML = `<tr><td colspan="12" class="inv-no-match">没有匹配的筛选结果</td></tr>`;
+    $invTbody.innerHTML = `<tr><td colspan="11" class="inv-no-match">没有匹配的筛选结果</td></tr>`;
     return;
   }
 
@@ -401,15 +408,14 @@ function renderInventory(items) {
     const costInput = `<input type="number" step="0.01" min="0" class="inv-cost-input" data-assetid="${escapeHTML(item.assetid || '')}" value="${curCost}" placeholder="—">`;
 
     tr.innerHTML = `
-      <td class="inv-col-icon"><img src="${escapeHTML(item.icon_url)}" alt="" class="inv-icon" loading="lazy" onerror="this.style.display='none'"></td>
+      <td class="inv-col-icon"><div class="inv-icon-wrap"><img src="${escapeHTML(item.icon_url)}" alt="" class="inv-icon" loading="lazy" onerror="this.style.display='none'">${amount > 1 ? `<span class="inv-qty-badge">${amount}</span>` : ""}</div></td>
       <td class="inv-col-name">
         <span class="inv-name">${escapeHTML(item.name_cn || item.name || item.market_hash_name)}</span>
         ${badges.length ? '<span class="inv-badges">' + badges.join("") + '</span>' : ""}
       </td>
+	      <td class="inv-col-spark" data-spark-id="${escapeHTML(String(item.item_id || ''))}"><span class="inv-spark-placeholder">&mdash;</span></td>
       <td><span class="inv-wear ${wearClass}">${escapeHTML(item.exterior || "—")}</span></td>
-      <td>${escapeHTML(item.quality || "—")}</td>
       <td><span style="${rarityStyle}">${escapeHTML(item.rarity || "—")}</span></td>
-      <td class="inv-col-num">${amount}</td>
       <td class="inv-col-num">${costInput}</td>
       <td class="inv-col-num">${priceHtml}</td>
       <td class="inv-col-num">${investHtml}</td>
@@ -435,6 +441,7 @@ function renderInventory(items) {
 
   updateSortHeaders();
   updateTheadTop();
+  applyCachedSparklines();
 }
 
 function groupByHash(items) {
@@ -522,4 +529,71 @@ function updateSortHeaders() {
       arrow.className = `sort-arrow ${invSortAsc ? "asc" : "desc"}`;
     }
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  7-DAY SPARKLINE (迷你走势图)
+// ═══════════════════════════════════════════════════════════
+
+const _sparklineSvg = {};  // {item_id: svg_html} 缓存，排序/筛选后复用
+let _sparklineFetching = false;  // 防止并发请求
+
+function applyCachedSparklines() {
+  for (const [gid, svg] of Object.entries(_sparklineSvg)) {
+    document.querySelectorAll(`.inv-col-spark[data-spark-id="${gid}"]`).forEach(td => {
+      td.innerHTML = svg;
+    });
+  }
+}
+
+function drawSparklineSvg(prices) {
+  if (!prices || prices.length < 2) return "";
+  const w = 80, h = 32, pad = 2;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+  const xs = prices.map((_, i) => pad + (i / (prices.length - 1)) * (w - pad * 2));
+  const ys = prices.map(p => pad + (1 - (p - min) / range) * (h - pad * 2));
+  const points = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(" ");
+  const trend = prices[prices.length - 1] - prices[0];
+  let cls = "inv-spark-flat";
+  if (trend > 0) cls = "inv-spark-up";
+  else if (trend < 0) cls = "inv-spark-down";
+  return `<svg class="inv-spark ${cls}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${points}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+async function fetchAllSparklines() {
+  if (_sparklineFetching) return;
+  const seen = new Set();
+  const ids = [];
+  for (const item of invAllItems) {
+    const gid = item.item_id;
+    if (gid && !seen.has(gid)) {
+      seen.add(gid);
+      ids.push(gid);
+    }
+  }
+  if (!ids.length) return;
+
+  _sparklineFetching = true;
+  try {
+    const r = await fetch("/api/inventory/sparklines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_ids: ids, steam_id: invCurrentSteamId }),
+    });
+    const data = await r.json();
+    const sparklines = data.sparklines || {};
+    for (const [gid, prices] of Object.entries(sparklines)) {
+      const svg = drawSparklineSvg(prices);
+      if (svg) {
+        _sparklineSvg[gid] = svg;
+      }
+    }
+    // 立即应用到当前 DOM
+    applyCachedSparklines();
+  } catch (e) { /* ignore */ }
+  _sparklineFetching = false;
 }

@@ -24,6 +24,10 @@ STEAM_INVENTORY_TIMEOUT = 30   # Steam 库存 API 请求超时
 # Steam 登录 Cookie (用于完整库存获取，浏览器 F12 → steamcommunity.com → steamLoginSecure)
 STEAM_COOKIE = os.getenv("STEAM_COOKIE", "")
 
+# Steam 代理 (中国大陆需代理才能访问 steamcommunity.com)
+# 格式: http://127.0.0.1:7890 或 socks5://127.0.0.1:1080
+STEAM_PROXY = os.getenv("STEAM_PROXY", "")
+
 # Steam API 请求间隔 (秒)，防止触发 429 限流
 STEAM_REQUEST_DELAY = 1.5
 

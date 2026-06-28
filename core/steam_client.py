@@ -7,6 +7,13 @@ import time
 import requests
 from . import config  # 通过 config.XXX 引用，确保 _write_env_value 更新后读取最新值
 
+# ── 代理配置 ──
+def _get_proxies():
+    """获取 Steam 请求代理（中国大陆需要）"""
+    if config.STEAM_PROXY:
+        return {"http": config.STEAM_PROXY, "https": config.STEAM_PROXY}
+    return None
+
 # 中英文磨损等级映射
 _WEAR_MAP = {
     "Factory New": "崭新出厂",
@@ -97,7 +104,7 @@ def _resolve_custom_url(custom_id):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
     try:
         time.sleep(config.STEAM_REQUEST_DELAY)
-        resp = requests.get(url, headers=headers, timeout=config.STEAM_INVENTORY_TIMEOUT)
+        resp = requests.get(url, headers=headers, timeout=config.STEAM_INVENTORY_TIMEOUT, proxies=_get_proxies())
         if resp.status_code != 200:
             return None, f"Steam 个人资料请求失败 (HTTP {resp.status_code})，请确认 ID 有效且库存已设为公开"
         # XML 中 <steamID64>7656119xxx</steamID64>
@@ -148,7 +155,7 @@ def get_steam_inventory(steamid64):
             if page > 1:
                 time.sleep(config.STEAM_REQUEST_DELAY)
 
-            resp = requests.get(url, params=params, headers=headers, timeout=config.STEAM_INVENTORY_TIMEOUT)
+            resp = requests.get(url, params=params, headers=headers, timeout=config.STEAM_INVENTORY_TIMEOUT, proxies=_get_proxies())
 
             if resp.status_code == 429:
                 if page == 1:

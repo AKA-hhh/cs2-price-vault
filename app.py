@@ -70,6 +70,9 @@ def _save_inventory_file(cache):
             "data": entry.get("data", {}),
             "timestamp": entry.get("timestamp", 0),
         }
+        if entry.get("sparklines"):
+            slim[sid]["sparklines"] = entry["sparklines"]
+            slim[sid]["sparklines_ts"] = entry.get("sparklines_ts", 0)
     with open(INVENTORY_CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(slim, f, ensure_ascii=False, indent=2)
 
@@ -798,7 +801,10 @@ def api_inventory_cached():
         items = cached["data"].get("items", [])
         if items and "name_cn" not in items[0]:
             _add_chinese_names(items)
-        return jsonify({"ok": True, "steam_id": sid, **cached["data"]})
+        resp = {"ok": True, "steam_id": sid, **cached["data"]}
+        if cached.get("sparklines"):
+            resp["sparklines"] = cached["sparklines"]
+        return jsonify(resp)
     return jsonify({"ok": True, "items": [], "total_count": 0, "priced_count": 0, "total_value": 0})
 
 
@@ -888,6 +894,84 @@ def api_inventory_cost():
         "total_value": round(total_value, 2),
         "pnl": round(total_value - total_cost, 2),
     })
+
+
+# ═══════════════════ 库存迷你走势图 (7天, 持久化缓存) ═══════════════════
+
+@app.route("/api/inventory/sparklines", methods=["POST"])
+def api_inventory_sparklines():
+    """批量获取多个饰品最近7天的价格走势（用于表格内迷你折线图）
+
+    POST body: {"item_ids": [123, 456, ...], "steam_id": "..."}
+    总是从 csqaq 实时拉取并持久化到 inventory.json。
+    返回: {"sparklines": {123: [price1, ...], 456: [...]}}
+    """
+    import requests as req_lib
+    from core.config import API_TOKEN
+
+    data = request.get_json(force=True)
+    item_ids = data.get("item_ids") or []
+    steam_id = (data.get("steam_id") or "").strip()
+    if not item_ids:
+        return jsonify({"sparklines": {}})
+
+    token = API_TOKEN
+    cache_key = steam_id or (list(_inventory_cache.keys())[-1] if _inventory_cache else None)
+
+    if not token:
+        # 无 Token 时返回缓存（如果有的话）
+        result = {}
+        if cache_key and cache_key in _inventory_cache:
+            cached_sp = _inventory_cache[cache_key].get("sparklines", {})
+            for gid in item_ids:
+                prices = cached_sp.get(str(gid))
+                if prices:
+                    result[str(gid)] = prices
+        return jsonify({"sparklines": result})
+
+    result = {}
+    headers = {"ApiToken": token, "Content-Type": "application/json"}
+
+    for i, gid in enumerate(item_ids):
+        try:
+            payload = json.dumps({
+                "good_id": str(gid),
+                "key": "sell_price",
+                "platform": 2,
+                "period": "7",
+                "style": "all_style",
+            })
+            resp = req_lib.request(
+                "POST",
+                "https://api.csqaq.com/api/v1/info/chart",
+                headers=headers,
+                data=payload.encode("utf-8"),
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                body = resp.json()
+                if body.get("code") == 200:
+                    raw = body.get("data", {})
+                    prices = raw.get("main_data", [])
+                    if prices:
+                        result[str(gid)] = [float(p) for p in prices if p is not None]
+
+            if i < len(item_ids) - 1:
+                time.sleep(0.35)
+        except Exception:
+            continue
+
+    # ── 持久化到 inventory.json ──
+    if result and cache_key:
+        if cache_key not in _inventory_cache:
+            _inventory_cache[cache_key] = {"data": {"items": [], "costs": {}}, "timestamp": 0}
+        existing = _inventory_cache[cache_key].get("sparklines", {})
+        existing.update(result)
+        _inventory_cache[cache_key]["sparklines"] = existing
+        _inventory_cache[cache_key]["sparklines_ts"] = time.time()
+        _save_inventory_file(_inventory_cache)
+
+    return jsonify({"sparklines": result})
 
 
 # ═══════════════════ 多平台比价 ═══════════════════
