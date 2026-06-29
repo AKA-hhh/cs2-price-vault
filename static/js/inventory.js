@@ -127,6 +127,7 @@ function showInventoryPage() {
   hide($watchlistPage);
   hide($kbPage);
   hide($promptsPage);
+  hide($rankPage);
   hide($resultsContainer);
   hide($loadingScreen);
   hide($errorToast);

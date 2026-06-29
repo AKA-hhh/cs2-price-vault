@@ -101,26 +101,37 @@ def _build_ai_prompt(df, item_name, period_days, recommendation, knowledge=None)
         "\n".join(f"  - {d}" for d in recommendation['details'])
     )
 
-    # 最近N条价格+在售数据: ≤30天取全部, >30天取最近30条
-    tail_n = len(df) if period_days <= 30 else min(len(df), 30)
-    rdf = df.tail(tail_n)[["time", "close"]].copy()
+    # 全量价格+在售数据：所有数据点全部发送，确保 AI 分析不丢失任何信息
+    cols = ["time", "close"]
+    col_labels = ["日期时间", "收盘价(¥)"]
+    if "sell_num" in df.columns:
+        cols.append("sell_num")
+        col_labels.append("在售数量(件)")
+    if "volume" in df.columns:
+        cols.append("volume")
+        col_labels.append("成交量")
+
+    rdf = df[cols].copy()
     rdf["time_str"] = rdf["time"].dt.strftime("%m-%d %H:%M")
-    price_lines = []
-    for idx, (_, r) in enumerate(rdf.iterrows()):
-        line = f"  {r['time_str']}  ￥{r['close']:.2f}"
-        if "sell_num" in df.columns:
-            sell_at_idx = df["sell_num"].iloc[-(tail_n - idx)] if idx < tail_n and (len(df) - tail_n + idx) >= 0 else ""
-            if sell_at_idx != "":
-                line += f"  在售: {int(sell_at_idx)}件"
-        price_lines.append(line)
+
+    # 字段说明行
+    price_lines = ["# 字段说明: " + " | ".join(col_labels)]
+    # 数据行：紧凑但可读
+    for _, r in rdf.iterrows():
+        parts = [r["time_str"], f"￥{r['close']:.2f}"]
+        if "sell_num" in cols:
+            parts.append(f"{int(r['sell_num'])}件" if not pd.isna(r["sell_num"]) else "—")
+        if "volume" in cols:
+            parts.append(f"{int(r['volume'])}" if not pd.isna(r["volume"]) else "—")
+        price_lines.append("  " + "  ".join(parts))
     price_list = "\n".join(price_lines)
 
-    prompt = f"""请对以下CS2饰品进行全面、深度的多维度技术分析，给出专业的买卖持仓建议。
+    prompt = f"""请对以下CS2饰品进行全面、深度的多维度技术分析，给出专业的买卖持仓建议。以下提供了该饰品在查询周期内的全部历史数据，请仔细逐条分析，不遗漏任何趋势变化和异常信号。
 
 【基本信息】
 饰品名称: {item_name}
 查询周期: 近{period_days}天
-数据点数: {len(df)}条
+数据总条数: {len(df)}条
 
 【价格概况】
 {chr(10).join(indicators)}
@@ -131,7 +142,7 @@ def _build_ai_prompt(df, item_name, period_days, recommendation, knowledge=None)
 【在售数量分析（悠悠有品）】
 {sell_num_stats}
 
-【近期价格+在售走势（近{tail_n}条）】
+【全量历史数据（共{len(df)}条，请逐条审视）】
 {price_list}
 
 【规则引擎预分析】
@@ -183,7 +194,7 @@ def get_ai_analysis(df, item_name, period_days, recommendation, knowledge=None):
             {"role": "user", "content": prompt},
         ],
         "temperature": config.AI_TEMPERATURE,
-        "max_tokens": 16384,
+        "max_tokens": 24576,
     })
 
     last_error = None

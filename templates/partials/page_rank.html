@@ -1,0 +1,244 @@
+<!-- ═══════════════ 排行榜页面 ═══════════════ -->
+    <div id="rank-page" class="rank-page hidden">
+      <div class="rank-header">
+        <h2 class="inv-title" style="margin-bottom: var(--space-4);">&#127942; 排行榜</h2>
+
+        <!-- 一级 Tab -->
+        <div class="rank-tabs" id="rank-tabs">
+          <button class="rank-tab active" data-rank="price">价格榜</button>
+          <button class="rank-tab" data-rank="hot">热门榜</button>
+          <button class="rank-tab" data-rank="volume">成交榜</button>
+        </div>
+
+        <!-- 二级 Tab + 时间范围（同行） -->
+        <div class="rank-sub-row" id="rank-sub-row">
+          <div class="rank-subtabs" id="rank-subtabs">
+            <button class="rank-subtab active" data-sub="price_up_rate">涨幅%</button>
+            <button class="rank-subtab" data-sub="price_down_rate">跌幅%</button>
+            <button class="rank-subtab" data-sub="price_up">涨幅¥</button>
+            <button class="rank-subtab" data-sub="price_down">跌幅¥</button>
+            <button class="rank-subtab" data-sub="market_cap">总市值</button>
+          </div>
+          <div class="rank-ctrl-group">
+            <select class="rank-time-select" id="rank-time-select">
+              <option value="1d" selected>近1天</option>
+              <option value="7d">近7天</option>
+              <option value="15d">近15天</option>
+              <option value="1m">近1个月</option>
+              <option value="3m">近3个月</option>
+              <option value="6m">近6个月</option>
+              <option value="1y">近1年</option>
+            </select>
+            <button class="rank-filter-btn" id="rank-filter-btn" title="高级筛选">&#9881;</button>
+          </div>
+        </div>
+
+        <!-- 分页信息 -->
+        <div class="rank-pagination" id="rank-pagination-top" style="justify-content:flex-start; padding:0 0 var(--space-3) 0;">
+          <span class="rank-page-info" id="rank-page-info">共 0 条</span>
+        </div>
+      </div>
+
+      <!-- 表格 -->
+      <div class="rank-table-wrap">
+        <table class="rank-table" id="rank-table">
+          <thead id="rank-thead">
+            <tr>
+              <th style="width:48px;">排行</th>
+              <th>饰品名称</th>
+              <th style="width:88px;">30天走势</th>
+              <th>在售价格</th>
+              <th>求购价格</th>
+              <th>在售数量</th>
+              <th id="rank-chg-header">变动率</th>
+              <th id="rank-vol-header" class="hidden">日成交量</th>
+            </tr>
+          </thead>
+          <tbody id="rank-tbody">
+            <tr><td colspan="5" class="rank-loading">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 底部分页 -->
+      <div class="rank-pagination" id="rank-pagination">
+        <button id="rank-prev-btn" disabled>上一页</button>
+        <span id="rank-page-btns"></span>
+        <button id="rank-next-btn" disabled>下一页</button>
+        <input type="number" class="rank-jump" id="rank-jump-input" placeholder="#" min="1">
+      </div>
+
+      <!-- 高级筛选弹窗 -->
+      <div id="rank-filter-modal" class="pf-modal hidden">
+        <div class="pf-modal-overlay"></div>
+        <div class="pf-modal-content panel" style="max-width:530px;">
+          <div class="panel-header">
+            <h3>高级筛选</h3>
+            <button id="rank-filter-close" class="btn-close">&times;</button>
+          </div>
+          <div class="pf-modal-body" style="padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:10px;">
+            <!-- 在售价格 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">在售价格范围 (¥)</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" class="rank-filter-input" id="rank-f-sell-min" placeholder="最低" min="0" step="0.01">
+                <span style="color:var(--text-tertiary);">—</span>
+                <input type="number" class="rank-filter-input" id="rank-f-sell-max" placeholder="最高" min="0" step="0.01">
+              </div>
+            </div>
+            <!-- 求购价格 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">求购价格范围 (¥)</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" class="rank-filter-input" id="rank-f-buy-min" placeholder="最低" min="0" step="0.01">
+                <span style="color:var(--text-tertiary);">—</span>
+                <input type="number" class="rank-filter-input" id="rank-f-buy-max" placeholder="最高" min="0" step="0.01">
+              </div>
+            </div>
+            <!-- 品类 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">品类</label>
+              <div class="rank-cat-checks">
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-cat-normal" checked> 普通</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-cat-strange"> StatTrak™</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-cat-souvenir"> 纪念品</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-cat-unusual"> ★</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-cat-unusual-strange"> ★StatTrak™</label>
+              </div>
+            </div>
+            <!-- 类型 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">类型</label>
+              <select class="rank-time-select" id="rank-f-type">
+                <option value="" selected>不限</option>
+                <optgroup label="匕首">
+                  <option value="不限_匕首">全部匕首</option>
+                  <option value="蝴蝶刀">蝴蝶刀</option>
+                  <option value="M9 刺刀">M9 刺刀</option>
+                  <option value="爪子刀">爪子刀</option>
+                  <option value="骷髅匕首">骷髅匕首</option>
+                  <option value="刺刀">刺刀</option>
+                  <option value="锯齿爪刀">锯齿爪刀</option>
+                  <option value="流浪者匕首">流浪者匕首</option>
+                  <option value="折叠刀">折叠刀</option>
+                  <option value="短剑">短剑</option>
+                  <option value="海豹短刀">海豹短刀</option>
+                  <option value="熊刀">熊刀</option>
+                  <option value="猎杀者匕首">猎杀者匕首</option>
+                  <option value="系绳匕首">系绳匕首</option>
+                  <option value="求生匕首">求生匕首</option>
+                  <option value="弯刀">弯刀</option>
+                  <option value="暗影双匕">暗影双匕</option>
+                  <option value="鲍伊猎刀">鲍伊猎刀</option>
+                  <option value="穿肠刀">穿肠刀</option>
+                  <option value="折刀">折刀</option>
+                </optgroup>
+                <optgroup label="手套">
+                  <option value="不限_手套">全部手套</option>
+                  <option value="运动手套">运动手套</option>
+                  <option value="专业手套">专业手套</option>
+                  <option value="摩托手套">摩托手套</option>
+                  <option value="驾驶手套">驾驶手套</option>
+                  <option value="手部束带">手部束带</option>
+                  <option value="狂牙手套">狂牙手套</option>
+                  <option value="九头蛇手套">九头蛇手套</option>
+                  <option value="血猎手套">血猎手套</option>
+                </optgroup>
+                <optgroup label="步枪">
+                  <option value="不限_步枪">全部步枪</option>
+                  <option value="AK-47">AK-47</option>
+                  <option value="AWP">AWP</option>
+                  <option value="M4A1 消音版">M4A1 消音版</option>
+                  <option value="M4A4">M4A4</option>
+                </optgroup>
+                <optgroup label="手枪">
+                  <option value="不限_手枪">全部手枪</option>
+                  <option value="沙漠之鹰">沙漠之鹰</option>
+                  <option value="USP 消音版">USP 消音版</option>
+                  <option value="格洛克 18 型">格洛克 18 型</option>
+                </optgroup>
+                <optgroup label="微型冲锋枪">
+                  <option value="不限_微型冲锋枪">全部微冲</option>
+                  <option value="MP9">MP9</option>
+                  <option value="MAC-10">MAC-10</option>
+                  <option value="UMP-45">UMP-45</option>
+                  <option value="P90">P90</option>
+                </optgroup>
+                <optgroup label="重武器">
+                  <option value="不限_霰弹枪">霰弹枪</option>
+                  <option value="不限_机枪">机枪</option>
+                </optgroup>
+                <optgroup label="其他">
+                  <option value="不限_武器箱">武器箱</option>
+                  <option value="印花">印花</option>
+                  <option value="音乐盒">音乐盒</option>
+                  <option value="收藏品">收藏品</option>
+                  <option value="探员">探员</option>
+                </optgroup>
+              </select>
+            </div>
+            <!-- 品质 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">品质</label>
+              <div class="rank-cat-checks" data-group="quality">
+                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-qual-any" checked> 不限</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-covert"> 违禁</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-classified"> 隐秘</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-restricted"> 保密</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-mil"> 受限</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-industrial"> 军规级</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-consumer"> 工业级</label>
+              </div>
+            </div>
+            <!-- 磨损 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">磨损</label>
+              <div class="rank-cat-checks" data-group="wear">
+                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-wear-any" checked> 不限</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-fn"> 崭新出厂</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-mw"> 略有磨损</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-ft"> 久经沙场</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-ww"> 破损不堪</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-bs"> 战痕累累</label>
+              </div>
+            </div>
+            <!-- 在售数量 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">在售数量</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" class="rank-filter-input" id="rank-f-sell-num-min" placeholder="最少" min="0">
+                <span style="color:var(--text-tertiary);">—</span>
+                <input type="number" class="rank-filter-input" id="rank-f-sell-num-max" placeholder="最多" min="0">
+              </div>
+            </div>
+            <!-- 时间范围 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">时间范围</label>
+              <select class="rank-time-select" id="rank-f-time">
+                <option value="1d" selected>近1天</option>
+                <option value="7d">近7天</option>
+                <option value="15d">近15天</option>
+                <option value="1m">近1个月</option>
+                <option value="3m">近3个月</option>
+                <option value="6m">近6个月</option>
+                <option value="1y">近1年</option>
+              </select>
+            </div>
+            <!-- 排序方向 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">排序方向</label>
+              <select class="rank-time-select" id="rank-f-order">
+                <option value="desc" selected>降序</option>
+                <option value="asc">升序</option>
+              </select>
+            </div>
+            <!-- 按钮 -->
+            <div style="display:flex;gap:var(--space-2);justify-content:flex-end;margin-top:var(--space-2);">
+              <button id="rank-filter-reset" class="btn-confirm-cancel">重置</button>
+              <button id="rank-filter-cancel" class="btn-confirm-cancel">取消</button>
+              <button id="rank-filter-apply" class="btn-confirm-ok">应用</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

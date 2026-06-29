@@ -32,7 +32,7 @@ const $kbPageBtns   = document.getElementById("kb-page-btns");
 const $kbJumpInput  = document.getElementById("kb-jump-input");
 
 function showPage(page) {
-  hide($dashboard); hide($watchlistPage); hide($kbPage); hide($promptsPage); hide($inventoryPage);
+  hide($dashboard); hide($watchlistPage); hide($kbPage); hide($promptsPage); hide($inventoryPage); hide($rankPage);
   hide($resultsContainer); hide($loadingScreen);
   document.querySelectorAll(".btn-dash").forEach(b => b.classList.remove("active"));
   activeAnalysisId = null;

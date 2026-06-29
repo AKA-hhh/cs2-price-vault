@@ -22,6 +22,7 @@
 - **自选列表** — 实时刷新价格、涨跌幅、在售数量
 - **持仓管理** — 录入买入价/数量，计算浮动盈亏，AI 持仓建议
 - **Steam 库存** — 绑定 Steam 库存链接，自动获取饰品列表、实时估值、总价值统计
+- **排行榜** — 价格榜(涨幅/跌幅/总市值) + 热门系列 + 成交榜，高级筛选弹窗(品类/类型/品质/磨损/价格)
 - **大盘概览** — CS2 饰品市场指数、情绪、异动、涨跌分布
 - **事件知识库** — CS2 相关事件记录，支持标签/日期/搜索和分页
 - **历史记录** — 分析会话自动持久化，支持切换和回溯
@@ -30,8 +31,8 @@
 
 | 层 | 技术 |
 |---|---|
-| 后端 | Python 3.10+, Flask, pandas, numpy |
-| 前端 | Vanilla JS (ES6), CSS Custom Properties, 模块化拆分 (11 JS + 12 CSS) |
+| 后端 | Python 3.10+, Flask (Blueprint), pandas, numpy |
+| 前端 | Vanilla JS (ES6), CSS Custom Properties, 模块化拆分 (12 JS + 13 CSS) |
 | 图表 | Plotly (交互式) + matplotlib (静态)，可在设置页切换 |
 | AI | DeepSeek API (Chat Completions) |
 | 数据源 | csqaq.com 开放 API + Steam 公开库存 |
@@ -102,7 +103,20 @@ python app.py
 
 ```
 cs2-price-vault/
-├── app.py                     # Flask 主应用 (33 个路由)
+├── app.py                     # Flask 入口 (~85行, 注册蓝图)
+├── shared.py                  # 共享状态 + 跨模块辅助函数
+├── routes/                    # 11 个 Flask Blueprint 模块
+│   ├── search.py              # 搜索 + 大盘
+│   ├── watchlist.py           # 自选 CRUD
+│   ├── portfolio.py           # 持仓 CRUD + AI 建议
+│   ├── inventory.py           # Steam 库存
+│   ├── rank.py                # 排行榜
+│   ├── analyze.py             # 核心分析
+│   ├── chat.py                # AI 追问 (同步 + SSE)
+│   ├── sessions.py            # 会话管理
+│   ├── settings.py            # 设置 + ID 映射
+│   ├── knowledge.py           # 知识库 CRUD
+│   └── prompts.py             # 提示词管理
 ├── core/
 │   ├── config.py              # 配置加载 (.env)
 │   ├── api_client.py          # csqaq.com API 封装
@@ -117,10 +131,10 @@ cs2-price-vault/
 │   └── utils.py               # 工具函数
 ├── templates/
 │   ├── index.html             # 骨架模板 (Jinja2 {% include %})
-│   └── partials/              # 12 个 HTML 模块 (head/header/sidebar/各页面/弹窗/设置)
+│   └── partials/              # 13 个 HTML 模块
 ├── static/
-│   ├── js/                    # 11 个 JS 模块 (core→search→analysis→chat→settings→kb→prompts→dashboard→watchlist→inventory→init)
-│   └── css/                   # 12 个 CSS 模块 (core/dashboard/analysis/watchlist/portfolio/settings/idmap/kb/prompts/inventory/responsive + style)
+│   ├── js/                    # 12 个 JS 模块 (+ rank.js)
+│   └── css/                   # 13 个 CSS 模块 (+ rank.css)
 ├── data/
 │   └── 饰品id_20260423.json    # 饰品 ID 映射表 (~3.9MB)
 ├── prompts.json               # 提示词模板持久化 (自动生成)

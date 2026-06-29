@@ -19,32 +19,47 @@ python app.py          # → http://127.0.0.1:5000，自动打开浏览器
 ## Architecture
 
 ```
-app.py                   # Flask 单文件服务器 (33 个路由: 搜索/分析/追问/自选/持仓/设置/提示词CRUD)
-core/
+app.py                   # Flask 入口 (~85行): 创建app、注册蓝图、启动
+shared.py                # 共享状态 + 跨模块辅助函数 (ID映射、缓存、文件IO、图表)
+routes/                  # Flask Blueprint 模块 (11个文件, 按功能拆分)
+  search.py              # /api/search, /api/market/overview
+  watchlist.py           # /api/watchlist/* CRUD
+  portfolio.py           # /api/portfolio/* CRUD + AI建议
+  inventory.py           # /api/inventory/* (Steam库存获取/价格/缓存/走势图)
+  rank.py                # /api/rank (价格榜/成交榜), /api/rank/series (热门系列)
+  analyze.py             # /api/analyze (核心: 指标计算+AI分析+图表)
+  chat.py                # /api/chat (同步追问), /api/chat/stream (SSE流式)
+  sessions.py            # /api/sessions (分析历史管理)
+  settings.py            # /api/settings/* + ID映射上传
+  knowledge.py           # /api/knowledge/* CRUD
+  prompts.py             # /api/prompts/* CRUD
+core/                    # 业务逻辑 (不变)
   config.py              # dotenv 加载，常量定义 (API keys、周期预设、超时)
   api_client.py          # csqaq.com API: K线端点优先，回退 chart 端点，内置 429 重试+间隔
   indicators.py          # pandas 技术指标: MA5/10/20/60, RSI, MACD, 布林带, KDJ, 动量, 波动率
   recommendation.py      # 规则引擎: 7 维度加权评分 (-100~100)，输出 buy/hold/sell
-  ai_analysis.py         # DeepSeek API: 通过 prompt_mgr 获取提示词模板，12 维度初次分析 + 多轮追问
-  prompts.py             # 提示词管理器单例: 多模板数据模型、JSON 持久化、CRUD、旧格式自动迁移
-  visualization.py       # matplotlib 图表: K线/收盘线 + 成交量 + RSI + MACD + KDJ 子图
-  visualization_plotly.py # Plotly 交互式图表 (替代 matplotlib，可在设置页切换)
+  ai_analysis.py         # DeepSeek API: 全量数据发送, max_tokens=24576, 多轮追问
+  prompts.py             # 提示词管理器单例: 多模板数据模型、JSON 持久化、CRUD
+  visualization.py       # matplotlib 图表
+  visualization_plotly.py # Plotly 交互式图表 (可在设置页切换)
   id_map.py              # 饰品名称模糊搜索: 子串匹配优先 → difflib 补充
-  utils.py               # 磨损度提取、文件名清理、CSV 保存
+  utils.py               # 磨损度提取、文件名清理
+  steam_client.py        # Steam API: 库存获取、价格批量查询
 templates/
-  index.html             # 骨架模板，使用 Jinja2 {% include %} 引入 partials/
+  index.html             # 骨架模板，Jinja2 {% include %} 引入 partials/
   partials/
-    head.html            # <head>: meta、字体、CSS links (11 个文件)
+    head.html            # <head>: meta、字体、CSS links
     header.html          # 顶部状态栏
-    sidebar.html         # 搜索框、周期选择、历史列表
+    sidebar.html         # 搜索框、周期选择、历史列表、导航
     page_dashboard.html  # 大盘仪表盘
     page_watchlist.html  # 自选页
     page_kb.html         # 事件知识库
-    page_prompts.html    # 提示词管理 (2×2 卡片)
+    page_prompts.html    # 提示词管理
     page_inventory.html  # Steam 库存页
+    page_rank.html       # 排行榜 (价格/热门/成交, 高级筛选弹窗)
     page_loading.html    # 分析加载动画 + 错误提示
     page_results.html    # 分析结果 (图表、建议、详情、AI 对话)
-    modals.html          # 所有弹窗 (库存绑定、提示词管理、KB查看/编辑、图片查看、ID Map、确认框)
+    modals.html          # 所有弹窗
     settings.html        # 设置抽屉
 static/js/               # 按功能模块拆分的 11 个 JS 文件，<script> 标签顺序 = 依赖顺序
   core.js                # DOM refs、全局状态、工具函数 (show/hide/fmtNum/escHtml/simpleMD/typewriterEffect/confirm/toast)

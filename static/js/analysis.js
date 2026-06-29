@@ -18,6 +18,7 @@ function showWatchlistPage() {
   hide($kbPage);
   hide($promptsPage);
   hide($inventoryPage);
+  hide($rankPage);
 
   hide($resultsContainer);
   hide($loadingScreen);
@@ -39,6 +40,7 @@ function showPromptsPage() {
   hide($watchlistPage);
   hide($kbPage);
   hide($inventoryPage);
+  hide($rankPage);
 
   hide($resultsContainer);
   hide($loadingScreen);
@@ -61,6 +63,7 @@ async function runAnalysis() {
   hide($kbPage);
   hide($promptsPage);
   hide($inventoryPage);
+  hide($rankPage);
   hide($errorToast);
 
   // 显示结果区 + 等候动画（同时显示，loading 盖在 grid 上面）
@@ -172,6 +175,7 @@ function renderResults(data, isSwitch) {
   hide($kbPage);
   hide($promptsPage);
   hide($inventoryPage);
+  hide($rankPage);
 
   hide($loadingScreen);
   hide($errorToast);
@@ -260,6 +264,7 @@ function showError(msg) {
   hide($kbPage);
   hide($promptsPage);
   hide($inventoryPage);
+  hide($rankPage);
 
   $errorToast.textContent = "✕ " + msg;
   show($errorToast);
@@ -274,6 +279,7 @@ function resetToWelcome() {
   hide($kbPage);
   hide($promptsPage);
   hide($inventoryPage);
+  hide($rankPage);
 
   show($dashboard);
   setActiveNav("btn-dashboard");

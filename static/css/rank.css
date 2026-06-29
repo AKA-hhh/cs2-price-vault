@@ -1,0 +1,228 @@
+/* ═══════════════════════════════════════════════
+   RANKING PAGE (排行榜)
+   ═══════════════════════════════════════════════ */
+.rank-page { padding: 0 var(--space-6) var(--space-6); }
+
+/* ── Tab bars ── */
+.rank-tabs { display: flex; gap: 4px; margin-bottom: var(--space-3); }
+.rank-tab {
+  padding: 8px 20px;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.rank-tab:hover { color: var(--text-primary); }
+.rank-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.rank-sub-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); gap: var(--space-3); }
+.rank-subtabs {
+  display: inline-flex;
+  background: var(--bg-inset);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 0;
+}
+.rank-subtab {
+  padding: 6px 18px;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-tertiary);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.rank-subtab:hover { color: var(--text-primary); }
+.rank-subtab.active {
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+/* 涨 → 红 */
+.rank-subtab[data-sub="price_up_rate"].active,
+.rank-subtab[data-sub="price_up"].active {
+  background: var(--cinnabar);
+}
+/* 跌 → 绿 */
+.rank-subtab[data-sub="price_down_rate"].active,
+.rank-subtab[data-sub="price_down"].active {
+  background: var(--malachite);
+}
+/* 总市值 → 强调色 */
+.rank-subtab[data-sub="market_cap"].active {
+  background: var(--accent);
+}
+
+/* 右侧控件组 — 与左侧胶囊风格统一 */
+.rank-ctrl-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-inset);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.rank-time-select {
+  padding: 5px 16px;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+}
+.rank-time-select:hover { color: var(--text-primary); }
+.rank-time-select:focus { color: var(--accent); }
+
+/* 高级筛选齿轮按钮 */
+.rank-filter-btn {
+  width: 32px; height: 32px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  background: transparent;
+  color: var(--text-tertiary);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  display: flex; align-items: center; justify-content: center;
+}
+.rank-filter-btn:hover { color: var(--accent); }
+.rank-filter-btn.active { color: #fff; background: var(--accent); }
+
+/* 高级筛选弹窗 */
+.rank-filter-group { display: flex; flex-direction: column; gap: 4px; }
+.rank-filter-label { font-size: var(--text-xs); color: var(--text-tertiary); font-family: var(--font-mono); }
+.rank-filter-input {
+  padding: 5px 8px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.rank-filter-input:focus { border-color: var(--accent); }
+.rank-filter-input::placeholder { color: var(--text-tertiary); }
+/* 弹窗内容滚动 */
+#rank-filter-modal .pf-modal-body { max-height: 78vh; overflow-y: auto; }
+
+/* 品类/品质/磨损多选 */
+.rank-cat-checks { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.rank-cat-check {
+  display: flex; align-items: center; gap: 5px;
+  font-size: var(--text-sm); font-family: var(--font-body);
+  color: var(--text-secondary); cursor: pointer; user-select: none;
+}
+.rank-cat-check input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+
+/* 弹窗内的下拉框恢复可见边框 */
+#rank-filter-modal .rank-time-select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: var(--text-xs);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+#rank-filter-modal .rank-time-select:focus { border-color: var(--accent) !important; }
+
+/* ── Table ── */
+.rank-table-wrap { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+.rank-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.rank-table thead { border-bottom: 1px solid var(--border-default); }
+.rank-table th {
+  position: sticky;
+  top: var(--rank-thead-top, 80px);
+  z-index: 40;
+  padding: 10px 12px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+  background: var(--bg-raised);
+  white-space: nowrap;
+}
+.rank-table th:first-child { text-align: left; padding-left: 16px; }
+.rank-table td { padding: 10px 14px; vertical-align: middle; font-size: 15px; text-align: center; }
+.rank-table tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background var(--dur-fast); }
+.rank-table tbody tr:last-child { border-bottom: none; }
+.rank-table tbody tr:hover { background: var(--bg-raised); cursor: pointer; }
+
+.rank-col-num { text-align: right !important; font-family: var(--font-mono); white-space: nowrap; font-size: var(--text-sm); }
+.rank-col-name { text-align: left !important; }
+.rank-icon { width: 72px; height: 54px; object-fit: contain; border-radius: 4px; background: var(--bg-inset); flex-shrink: 0; }
+.rank-name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+.rank-col-spark { text-align: center !important; padding: 2px 6px !important; vertical-align: middle; }
+.rank-change-up { color: var(--cinnabar); font-weight: 600; }
+.rank-change-down { color: var(--malachite); font-weight: 600; }
+.rank-type-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* 隐藏顶部页码信息 */
+#rank-pagination-top { display: none; }
+
+/* ── 表头区域 sticky ── */
+.rank-header {
+  position: sticky;
+  top: -24px;
+  z-index: 50;
+  background: var(--bg-page);
+  margin-top: -24px;
+  padding-top: var(--space-4);
+}
+
+/* ── Pagination ── */
+.rank-pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: var(--space-4) 0; }
+.rank-pagination button {
+  padding: 8px 22px;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 500;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.rank-pagination button:hover { opacity: 0.85; }
+.rank-pagination button:disabled { opacity: 0.35; cursor: default; }
+.rank-page-info { font-size: var(--text-sm); color: var(--text-tertiary); margin-right: 8px; font-family: var(--font-mono); }
+.rank-jump { width: 52px; padding: 7px 8px; font-size: var(--text-sm); font-family: var(--font-mono); background: var(--bg-inset); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); text-align: center; outline: none; }
+.rank-jump:focus { border-color: var(--accent); }
+
+.rank-empty { text-align: center; padding: var(--space-10) 14px; color: var(--text-tertiary); font-size: var(--text-sm); }
+.rank-loading { text-align: center; padding: var(--space-10) 14px; color: var(--text-secondary); font-size: var(--text-sm); }

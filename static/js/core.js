@@ -37,6 +37,7 @@ const $headerStatus   = document.getElementById("header-status");
 const $kbPage         = document.getElementById("kb-page");
 const $promptsPage    = document.getElementById("prompts-page");
 const $inventoryPage  = document.getElementById("inventory-page");
+const $rankPage       = document.getElementById("rank-page");
 
 // ── State ──
 let selectedItemId   = null;

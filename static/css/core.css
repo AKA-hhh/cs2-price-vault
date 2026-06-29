@@ -235,8 +235,10 @@ body {
   -moz-appearance: textfield;
   min-width: 0;
 }
-.custom-days-input::-webkit-inner-spin-button,
-.custom-days-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* 全局隐藏数字增减按钮 */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
 .custom-days-input:focus { border-color: var(--accent); }
 .period-picker button.active {
   background: var(--bg-surface); color: var(--accent-dark); font-weight: 700;
