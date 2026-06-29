@@ -42,7 +42,7 @@ def api_rank():
             return jsonify({"error": body.get("msg", "上游 API 业务错误")}), 502
         result = body.get("data", {})
         result["_msg"] = body.get("msg", "")
-        print(f"[排行榜] page={page_index}, size={page_size}, msg={body.get('msg')}, items={len(result.get('data', []))}")
+        print(f"[排行榜] page={page_index}, size={page_size}, filter={json.dumps(filter_obj, ensure_ascii=False)}, msg={body.get('msg')}, items={len(result.get('data', []))}")
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"请求失败: {e}"}), 500

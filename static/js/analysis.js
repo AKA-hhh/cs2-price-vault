@@ -27,10 +27,11 @@ function showWatchlistPage() {
   setActiveNav("btn-watchlist-page");
   activeAnalysisId = null;
   loadHistory(true); // keepActiveId 防止服务器 active_id 覆盖
+  // 有缓存秒开，无缓存从服务器加载
   loadWatchlist().then(() => {
-    // 后台自动刷新最新价格
+    // 后台刷新最新价格，完事静默更新
     fetch("/api/watchlist/refresh", {method:"POST"}).then(r => r.json()).then(items => {
-      renderWatchlistTable(items);
+      updateWlCache(items);
     }).catch(() => {});
   });
 }

@@ -27,8 +27,9 @@
 .wl-table th { padding: 10px 14px; text-align: center; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; color: var(--text-tertiary); letter-spacing: 0.04em; background: var(--bg-raised); }
 .wl-table th.wl-th-name { text-align: left; }
 .wl-th-img  { width: 88px; }
+.wl-th-spark { width: 88px; }
 .wl-th-price { width: 110px; text-align: right; }
-.wl-th-num   { width: 80px; text-align: right; }
+.wl-th-num   { width: 130px; text-align: right; }
 .wl-th-chg   { width: 78px; text-align: right; }
 .wl-th-act   { width: 36px; }
 .wl-table tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background var(--dur-fast); }
@@ -46,5 +47,6 @@
 .wl-td-del { text-align: center; }
 .wl-td-del button { width: 24px; height: 24px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-tertiary); font-size: 0.65rem; cursor: pointer; transition: all var(--dur-fast); }
 .wl-td-del button:hover { background: var(--cinnabar-bg); color: var(--cinnabar); }
+.wl-td-spark { text-align: center; padding: 2px 6px; vertical-align: middle; }
 .wl-empty-row td { text-align: center; padding: var(--space-10) 14px; color: var(--text-tertiary); font-size: var(--text-sm); }
 .wl-table tbody tr.wl-empty-row:hover { background: transparent; }

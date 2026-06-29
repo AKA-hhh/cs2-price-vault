@@ -8,19 +8,31 @@ const $wlTableBody     = document.getElementById("wl-table-body");
 const $wlPageCount     = document.getElementById("wl-page-count");
 const $wlRefreshBtn    = document.getElementById("btn-wl-refresh");
 let wlSearchTimeout = null;
+let wlCache = null;  // 列表数据缓存，切换页面时秒开
+const _wlSparkCache = {};  // 走势图 SVG 缓存，避免重复请求
 
 async function loadWatchlist() {
+  if (wlCache) {
+    renderWatchlistTable(wlCache);
+    return;
+  }
   try {
     const r = await fetch("/api/watchlist");
     const items = await r.json();
+    wlCache = items;
     renderWatchlistTable(items);
   } catch (e) { /* ignore */ }
+}
+
+function updateWlCache(items) {
+  wlCache = items;
+  renderWatchlistTable(items);
 }
 
 function renderWatchlistTable(items) {
   $wlPageCount.textContent = items.length;
   if (!items.length) {
-    $wlTableBody.innerHTML = '<tr class="wl-empty-row"><td colspan="9">暂无自选，在上方搜索添加</td></tr>';
+    $wlTableBody.innerHTML = '<tr class="wl-empty-row"><td colspan="10">暂无自选，在上方搜索添加</td></tr>';
     return;
   }
   $wlTableBody.innerHTML = items.map(w => {
@@ -33,13 +45,14 @@ function renderWatchlistTable(items) {
     const sign = (v) => v >= 0 ? "+" : "";
     let addTime = "";
     if (w.added_at) {
-      try { const d = new Date(w.added_at); addTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; } catch(e) {}
+      try { const d = new Date(w.added_at); addTime = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; } catch(e) {}
     }
     return `<tr>
       <td class="wl-td-item">
         <img src="${w.img||''}" loading="lazy" onerror="this.style.display='none'">
         <span class="wl-td-name" title="${(w.name||'').replace(/"/g,'&quot;')}">${w.name||'ID:'+w.id}</span>
       </td>
+      <td class="wl-td-spark" data-wl-spark="${w.id}"><span class="inv-spark-placeholder">&mdash;</span></td>
       <td class="wl-td-price">¥${Number(w.price||0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</td>
       <td class="wl-td-price">¥${Number(w.buy_price||0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</td>
       <td class="wl-td-price">¥${Number(w.added_price||0).toLocaleString('zh-CN',{minimumFractionDigits:2})}</td>
@@ -50,6 +63,18 @@ function renderWatchlistTable(items) {
       <td class="wl-td-del"><button data-remove="${w.id}" title="移除">✕</button></td>
     </tr>`;
   }).join("");
+
+  // 先用缓存的走势图秒开
+  applyWlSparkCache();
+  // 后台刷新走势图（有缓存跳过）
+  fetchWlSparklines(items.map(w => w.id));
+}
+
+function applyWlSparkCache() {
+  for (const [gid, svg] of Object.entries(_wlSparkCache)) {
+    const td = document.querySelector(`.wl-td-spark[data-wl-spark="${gid}"]`);
+    if (td) td.innerHTML = svg;
+  }
 }
 
 // ── Search to add ──
@@ -101,6 +126,7 @@ $btnWlAdd.addEventListener("click", async () => {
       $wlSearchResults.innerHTML = "";
       $btnWlAdd.disabled = true;
       wlSelectedItem = null;
+      wlCache = null;  // 列表已变，清缓存
       await loadWatchlist();
     } else if (r.status === 409) {
       const d = await r.json();
@@ -123,6 +149,7 @@ $wlTableBody.addEventListener("click", async (e) => {
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({item_id: id}),
   });
+  wlCache = null;  // 列表已变，清缓存
   await loadWatchlist();
   showToast("✓ 已移除");
 });
@@ -136,7 +163,50 @@ $wlRefreshBtn.addEventListener("click", async () => {
     const r = await fetch("/api/watchlist/refresh", {method:"POST"});
     if (r.ok) {
       const items = await r.json();
-      renderWatchlistTable(items);
+      updateWlCache(items);
     }
   } catch (e) { /* ignore */ }
 });
+
+// ── 30天走势图 ──
+async function fetchWlSparklines(ids) {
+  if (!ids || ids.length === 0) return;
+  // 总是拉全量最新数据，覆盖缓存保证准确性
+  try {
+    const r = await fetch("/api/watchlist/sparklines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_ids: ids }),
+    });
+    const d = await r.json();
+    const sparklines = d.sparklines || {};
+    for (const [gid, prices] of Object.entries(sparklines)) {
+      const svg = drawWlSparkline(prices);
+      if (svg) {
+        _wlSparkCache[gid] = svg;
+        const td = document.querySelector(`.wl-td-spark[data-wl-spark="${gid}"]`);
+        if (td) td.innerHTML = svg;
+      }
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function drawWlSparkline(prices) {
+  if (!prices || prices.length < 2) return "";
+  const vals = prices.map(p => Number(p)).filter(v => !isNaN(v) && v > 0);
+  if (vals.length < 2) return "";
+  const w = 80, h = 30, pad = 2;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const xs = vals.map((_, i) => pad + (i / (vals.length - 1)) * (w - pad * 2));
+  const ys = vals.map(v => pad + (1 - (v - min) / range) * (h - pad * 2));
+  const points = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(" ");
+  const trend = vals[vals.length - 1] - vals[0];
+  let cls = "inv-spark-flat";
+  if (trend > 0) cls = "inv-spark-up";
+  else if (trend < 0) cls = "inv-spark-down";
+  return `<svg class="inv-spark ${cls}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${points}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}

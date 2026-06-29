@@ -86,15 +86,6 @@
                 <input type="number" class="rank-filter-input" id="rank-f-sell-max" placeholder="最高" min="0" step="0.01">
               </div>
             </div>
-            <!-- 求购价格 -->
-            <div class="rank-filter-group">
-              <label class="rank-filter-label">求购价格范围 (¥)</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="number" class="rank-filter-input" id="rank-f-buy-min" placeholder="最低" min="0" step="0.01">
-                <span style="color:var(--text-tertiary);">—</span>
-                <input type="number" class="rank-filter-input" id="rank-f-buy-max" placeholder="最高" min="0" step="0.01">
-              </div>
-            </div>
             <!-- 品类 -->
             <div class="rank-filter-group">
               <label class="rank-filter-label">品类</label>
@@ -106,9 +97,65 @@
                 <label class="rank-cat-check"><input type="checkbox" id="rank-f-cat-unusual-strange"> ★StatTrak™</label>
               </div>
             </div>
-            <!-- 类型 -->
+            <!-- 品质 -->
             <div class="rank-filter-group">
-              <label class="rank-filter-label">类型</label>
+              <label class="rank-filter-label">品质</label>
+              <div class="rank-cat-checks" data-group="quality">
+                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-qual-any" checked> 不限</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-covert"> 违禁</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-classified"> 隐秘</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-restricted"> 保密</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-mil"> 受限</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-industrial"> 军规级</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-consumer"> 工业级</label>
+              </div>
+            </div>
+            <!-- 磨损 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">磨损</label>
+              <div class="rank-cat-checks" data-group="wear">
+                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-wear-any" checked> 不限</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-fn"> 崭新出厂</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-mw"> 略有磨损</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-ft"> 久经沙场</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-ww"> 破损不堪</label>
+                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-bs"> 战痕累累</label>
+              </div>
+            </div>
+            <!-- 在售数量 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">在售数量</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" class="rank-filter-input" id="rank-f-sell-num-min" placeholder="最少" min="0">
+                <span style="color:var(--text-tertiary);">—</span>
+                <input type="number" class="rank-filter-input" id="rank-f-sell-num-max" placeholder="最多" min="0">
+              </div>
+            </div>
+            <!-- 时间范围 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">时间范围</label>
+              <select class="rank-time-select" id="rank-f-time">
+                <option value="1d" selected>近1天</option>
+                <option value="7d">近7天</option>
+                <option value="15d">近15天</option>
+                <option value="1m">近1个月</option>
+                <option value="3m">近3个月</option>
+                <option value="6m">近6个月</option>
+                <option value="1y">近1年</option>
+              </select>
+            </div>
+            <!-- 排序方向 -->
+            <div class="rank-filter-group">
+              <label class="rank-filter-label">排序方向</label>
+              <select class="rank-time-select" id="rank-f-order">
+                <option value="desc" selected>降序</option>
+                <option value="asc">升序</option>
+              </select>
+            </div>
+            <!-- 类型 -->
+            <div class="rank-filter-group" id="rank-filter-type">
+              <label class="rank-filter-label rank-collapse-toggle" data-target="rank-type-body">▶ 类型</label>
+              <div id="rank-type-body" class="rank-type-body collapsed">
               <div class="rank-cat-checks" data-group="type">
                 <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-type-any" checked> 不限</label>
               </div>
@@ -210,61 +257,7 @@
                   <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-agent-t"> 恐怖分子</label>
                 </div>
               </div>
-            </div>
-            <!-- 品质 -->
-            <div class="rank-filter-group">
-              <label class="rank-filter-label">品质</label>
-              <div class="rank-cat-checks" data-group="quality">
-                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-qual-any" checked> 不限</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-covert"> 违禁</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-classified"> 隐秘</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-restricted"> 保密</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-mil"> 受限</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-industrial"> 军规级</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-qual-consumer"> 工业级</label>
-              </div>
-            </div>
-            <!-- 磨损 -->
-            <div class="rank-filter-group">
-              <label class="rank-filter-label">磨损</label>
-              <div class="rank-cat-checks" data-group="wear">
-                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-wear-any" checked> 不限</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-fn"> 崭新出厂</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-mw"> 略有磨损</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-ft"> 久经沙场</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-ww"> 破损不堪</label>
-                <label class="rank-cat-check"><input type="checkbox" id="rank-f-wear-bs"> 战痕累累</label>
-              </div>
-            </div>
-            <!-- 在售数量 -->
-            <div class="rank-filter-group">
-              <label class="rank-filter-label">在售数量</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="number" class="rank-filter-input" id="rank-f-sell-num-min" placeholder="最少" min="0">
-                <span style="color:var(--text-tertiary);">—</span>
-                <input type="number" class="rank-filter-input" id="rank-f-sell-num-max" placeholder="最多" min="0">
-              </div>
-            </div>
-            <!-- 时间范围 -->
-            <div class="rank-filter-group">
-              <label class="rank-filter-label">时间范围</label>
-              <select class="rank-time-select" id="rank-f-time">
-                <option value="1d" selected>近1天</option>
-                <option value="7d">近7天</option>
-                <option value="15d">近15天</option>
-                <option value="1m">近1个月</option>
-                <option value="3m">近3个月</option>
-                <option value="6m">近6个月</option>
-                <option value="1y">近1年</option>
-              </select>
-            </div>
-            <!-- 排序方向 -->
-            <div class="rank-filter-group">
-              <label class="rank-filter-label">排序方向</label>
-              <select class="rank-time-select" id="rank-f-order">
-                <option value="desc" selected>降序</option>
-                <option value="asc">升序</option>
-              </select>
+              </div><!-- .rank-type-body -->
             </div>
             <!-- 按钮 -->
             <div style="display:flex;gap:var(--space-2);justify-content:flex-end;margin-top:var(--space-2);">

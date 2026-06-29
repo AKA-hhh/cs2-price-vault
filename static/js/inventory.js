@@ -405,7 +405,7 @@ function renderInventory(items) {
     if (!item.marketable) badges.push(`<span class="inv-badge inv-badge-nomarket" title="不可市场">&#128683;</span>`);
 
     // 成本价
-    const curCost = invCosts[item.assetid] || "";
+    const curCost = invCosts[item.assetid] != null ? invCosts[item.assetid] : "";
     const costInput = `<input type="number" step="0.01" min="0" class="inv-cost-input" data-assetid="${escapeHTML(item.assetid || '')}" value="${curCost}" placeholder="—">`;
 
     tr.innerHTML = `

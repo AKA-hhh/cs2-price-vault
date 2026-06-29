@@ -88,3 +88,53 @@ def api_watchlist_remove():
     wl = [w for w in wl if str(w.get("id")) != item_id]
     shared._save_watchlist(wl)
     return jsonify({"ok": True})
+
+
+@watchlist_bp.route("/api/watchlist/sparklines", methods=["POST"])
+def api_watchlist_sparklines():
+    import json
+    import time
+    import requests as req_lib
+    from core.config import API_TOKEN
+
+    data = request.get_json(force=True)
+    item_ids = data.get("item_ids") or []
+    if not item_ids:
+        return jsonify({"sparklines": {}})
+
+    token = API_TOKEN
+    if not token:
+        return jsonify({"sparklines": {}})
+
+    result = {}
+    headers = {"ApiToken": token, "Content-Type": "application/json"}
+
+    for i, gid in enumerate(item_ids):
+        try:
+            payload = json.dumps({
+                "good_id": str(gid),
+                "key": "sell_price",
+                "platform": 2,
+                "period": "30",
+                "style": "all_style",
+            })
+            resp = req_lib.request(
+                "POST",
+                "https://api.csqaq.com/api/v1/info/chart",
+                headers=headers,
+                data=payload.encode("utf-8"),
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                body = resp.json()
+                if body.get("code") == 200:
+                    raw = body.get("data", {})
+                    prices = raw.get("main_data", [])
+                    if prices:
+                        result[str(gid)] = [float(p) for p in prices if p is not None]
+            if i < len(item_ids) - 1:
+                time.sleep(0.35)
+        except Exception:
+            continue
+
+    return jsonify({"sparklines": result})

@@ -20,8 +20,6 @@ const RANK_PAGE_SIZE = 20;
 let rankAdvFilter = {
   sell_min: 2,         // 价格最低价 (默认≥¥2)
   sell_max: null,      // 价格最高价
-  buy_min: null,       // 求购最少
-  buy_max: null,       // 求购最多
   sell_num_min: 100,    // 在售最少
   sell_num_max: null,   // 在售最多
   time: "1d",          // 时间范围
@@ -106,13 +104,6 @@ function getRankFilter() {
     if (rankAdvFilter.sell_max != null) {
       extra["价格最高价"] = rankAdvFilter.sell_max;
     }
-    // 求购范围
-    if (rankAdvFilter.buy_min != null) {
-      extra["求购最少"] = rankAdvFilter.buy_min;
-    }
-    if (rankAdvFilter.buy_max != null) {
-      extra["求购最多"] = rankAdvFilter.buy_max;
-    }
     // 在售数量范围
     if (rankAdvFilter.sell_num_min != null) {
       extra["在售最少"] = rankAdvFilter.sell_num_min;
@@ -185,7 +176,7 @@ document.getElementById("rank-tabs").addEventListener("click", (e) => {
     show($subtabs);
     rankSubTab = "price_up_rate";
     rankTime = "1d";
-    rankAdvFilter = { sell_min: 2, sell_max: null, buy_min: null, buy_max: null, sell_num_min: 100, sell_num_max: null, time: "1d", order: "desc", categories: ["normal"], type: [], quality: [], wear: [] };
+    rankAdvFilter = { sell_min: 2, sell_max: null, sell_num_min: 100, sell_num_max: null, time: "1d", order: "desc", categories: ["normal"], type: [], quality: [], wear: [] };
     rankAdvActive = true;
     updateFilterBtnState();
     $rankTimeSelect.value = "1d";
@@ -256,8 +247,6 @@ function openRankFilter() {
   const f = rankAdvFilter;
   document.getElementById("rank-f-sell-min").value      = f.sell_min ?? "";
   document.getElementById("rank-f-sell-max").value      = f.sell_max ?? "";
-  document.getElementById("rank-f-buy-min").value       = f.buy_min ?? "";
-  document.getElementById("rank-f-buy-max").value       = f.buy_max ?? "";
   document.getElementById("rank-f-sell-num-min").value  = f.sell_num_min ?? "";
   document.getElementById("rank-f-sell-num-max").value  = f.sell_num_max ?? "";
   document.getElementById("rank-f-time").value          = f.time;
@@ -312,8 +301,6 @@ function applyRankFilter() {
   const g = (id) => document.getElementById(id).value;
   rankAdvFilter.sell_min      = g("rank-f-sell-min") !== "" ? parseFloat(g("rank-f-sell-min")) : null;
   rankAdvFilter.sell_max      = g("rank-f-sell-max") !== "" ? parseFloat(g("rank-f-sell-max")) : null;
-  rankAdvFilter.buy_min       = g("rank-f-buy-min") !== "" ? parseFloat(g("rank-f-buy-min")) : null;
-  rankAdvFilter.buy_max       = g("rank-f-buy-max") !== "" ? parseFloat(g("rank-f-buy-max")) : null;
   rankAdvFilter.sell_num_min  = g("rank-f-sell-num-min") !== "" ? parseInt(g("rank-f-sell-num-min")) : null;
   rankAdvFilter.sell_num_max  = g("rank-f-sell-num-max") !== "" ? parseInt(g("rank-f-sell-num-max")) : null;
   rankAdvFilter.time          = g("rank-f-time");
@@ -330,7 +317,6 @@ function applyRankFilter() {
   const isDefaultCats = f.categories.length === 1 && f.categories[0] === "normal";
   rankAdvActive = (
     (f.sell_min != null && f.sell_min !== 2) || f.sell_max != null ||
-    f.buy_min != null || f.buy_max != null ||
     (f.sell_num_min != null && f.sell_num_min !== 100) || f.sell_num_max != null ||
     f.order !== "desc" || !isDefaultCats ||
     f.type.length > 0 || f.quality.length > 0 || f.wear.length > 0
@@ -349,8 +335,6 @@ function applyRankFilter() {
 function resetRankFilter() {
   document.getElementById("rank-f-sell-min").value      = "";
   document.getElementById("rank-f-sell-max").value      = "";
-  document.getElementById("rank-f-buy-min").value       = "";
-  document.getElementById("rank-f-buy-max").value       = "";
   document.getElementById("rank-f-sell-num-min").value  = "100";
   document.getElementById("rank-f-sell-num-max").value  = "";
   document.getElementById("rank-f-time").value          = rankTime;
@@ -363,7 +347,7 @@ function resetRankFilter() {
   document.querySelectorAll("#rank-filter-modal input[id^='rank-f-qual-'], #rank-filter-modal input[id^='rank-f-wear-']").forEach(cb => { cb.checked = false; });
   document.getElementById("rank-f-qual-any").checked = true;
   document.getElementById("rank-f-wear-any").checked = true;
-  rankAdvFilter = { sell_min: 2, sell_max: null, buy_min: null, buy_max: null, sell_num_min: 100, sell_num_max: null, time: rankTime, order: "desc", categories: ["normal"], type: [], quality: [], wear: [] };
+  rankAdvFilter = { sell_min: 2, sell_max: null, sell_num_min: 100, sell_num_max: null, time: rankTime, order: "desc", categories: ["normal"], type: [], quality: [], wear: [] };
   rankAdvActive = false;
   updateFilterBtnState();
   closeRankFilter();
@@ -461,6 +445,16 @@ $rankFilterModal.querySelectorAll(".rank-cat-checks[data-group]").forEach(group 
   });
 });
 
+// 类型折叠切换
+$rankFilterModal.querySelectorAll(".rank-collapse-toggle").forEach(label => {
+  label.addEventListener("click", () => {
+    const body = document.getElementById(label.dataset.target);
+    if (!body) return;
+    const collapsed = body.classList.toggle("collapsed");
+    label.textContent = (collapsed ? "▶" : "▼") + label.textContent.slice(1);
+  });
+});
+
 // 点击遮罩关闭
 $rankFilterModal.querySelector(".pf-modal-overlay").addEventListener("click", closeRankFilter);
 
@@ -507,6 +501,7 @@ async function loadRankList() {
   }
 
   const filter = getRankFilter();
+  console.log("[rank] 发送 filter:", JSON.stringify(filter));
 
   try {
     const r = await fetch("/api/rank", {

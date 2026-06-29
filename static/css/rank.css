@@ -235,3 +235,8 @@
 
 .rank-empty { text-align: center; padding: var(--space-10) 14px; color: var(--text-tertiary); font-size: var(--text-sm); }
 .rank-loading { text-align: center; padding: var(--space-10) 14px; color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* 类型折叠 */
+.rank-collapse-toggle { cursor: pointer; user-select: none; transition: color var(--dur-fast); }
+.rank-collapse-toggle:hover { color: var(--accent); }
+.rank-type-body.collapsed { display: none; }
