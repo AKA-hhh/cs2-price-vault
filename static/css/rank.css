@@ -126,8 +126,11 @@
 }
 .rank-filter-input:focus { border-color: var(--accent); }
 .rank-filter-input::placeholder { color: var(--text-tertiary); }
-/* 弹窗内容滚动 */
-#rank-filter-modal .pf-modal-body { max-height: 78vh; overflow-y: auto; }
+/* 弹窗布局：表头 + 按钮固定，内容滚动 */
+#rank-filter-modal .pf-modal-content { display: flex; flex-direction: column; max-height: 88vh; }
+#rank-filter-modal .panel-header { flex-shrink: 0; }
+#rank-filter-modal .pf-modal-body { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: var(--space-2); }
+#rank-filter-modal .pf-modal-body > div:last-child { position: sticky; bottom: -16px; background: var(--bg-surface); padding: var(--space-3) 0 var(--space-5) 0; margin-top: var(--space-2); border-top: 1px solid var(--border-subtle); }
 
 /* 品类/品质/磨损多选 */
 .rank-cat-checks { display: flex; gap: var(--space-3); flex-wrap: wrap; }
@@ -137,6 +140,12 @@
   color: var(--text-secondary); cursor: pointer; user-select: none;
 }
 .rank-cat-check input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+
+/* 类型多选网格 */
+.rank-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-1) var(--space-3); margin-top: 4px; }
+.rank-type-col { display: flex; flex-direction: column; gap: 1px; }
+.rank-type-head { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 600; padding-bottom: 2px; }
+.rank-type-col .rank-cat-check { font-size: var(--text-xs); }
 
 /* 弹窗内的下拉框恢复可见边框 */
 #rank-filter-modal .rank-time-select {
@@ -152,7 +161,7 @@
 
 /* ── Table ── */
 .rank-table-wrap { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
-.rank-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.rank-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .rank-table thead { border-bottom: 1px solid var(--border-default); }
 .rank-table th {
   position: sticky;
@@ -174,10 +183,10 @@
 .rank-table tbody tr:last-child { border-bottom: none; }
 .rank-table tbody tr:hover { background: var(--bg-raised); cursor: pointer; }
 
-.rank-col-num { text-align: right !important; font-family: var(--font-mono); white-space: nowrap; font-size: var(--text-sm); }
+.rank-col-num { text-align: center !important; font-family: var(--font-mono); white-space: nowrap; font-size: var(--text-sm); }
 .rank-col-name { text-align: left !important; }
 .rank-icon { width: 72px; height: 54px; object-fit: contain; border-radius: 4px; background: var(--bg-inset); flex-shrink: 0; }
-.rank-name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+.rank-name { color: var(--text-primary); }
 .rank-col-spark { text-align: center !important; padding: 2px 6px !important; vertical-align: middle; }
 .rank-change-up { color: var(--cinnabar); font-weight: 600; }
 .rank-change-down { color: var(--malachite); font-weight: 600; }

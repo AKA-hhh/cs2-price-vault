@@ -71,7 +71,7 @@
       <!-- 高级筛选弹窗 -->
       <div id="rank-filter-modal" class="pf-modal hidden">
         <div class="pf-modal-overlay"></div>
-        <div class="pf-modal-content panel" style="max-width:530px;">
+        <div class="pf-modal-content panel" style="max-width:720px;">
           <div class="panel-header">
             <h3>高级筛选</h3>
             <button id="rank-filter-close" class="btn-close">&times;</button>
@@ -109,73 +109,107 @@
             <!-- 类型 -->
             <div class="rank-filter-group">
               <label class="rank-filter-label">类型</label>
-              <select class="rank-time-select" id="rank-f-type">
-                <option value="" selected>不限</option>
-                <optgroup label="匕首">
-                  <option value="不限_匕首">全部匕首</option>
-                  <option value="蝴蝶刀">蝴蝶刀</option>
-                  <option value="M9 刺刀">M9 刺刀</option>
-                  <option value="爪子刀">爪子刀</option>
-                  <option value="骷髅匕首">骷髅匕首</option>
-                  <option value="刺刀">刺刀</option>
-                  <option value="锯齿爪刀">锯齿爪刀</option>
-                  <option value="流浪者匕首">流浪者匕首</option>
-                  <option value="折叠刀">折叠刀</option>
-                  <option value="短剑">短剑</option>
-                  <option value="海豹短刀">海豹短刀</option>
-                  <option value="熊刀">熊刀</option>
-                  <option value="猎杀者匕首">猎杀者匕首</option>
-                  <option value="系绳匕首">系绳匕首</option>
-                  <option value="求生匕首">求生匕首</option>
-                  <option value="弯刀">弯刀</option>
-                  <option value="暗影双匕">暗影双匕</option>
-                  <option value="鲍伊猎刀">鲍伊猎刀</option>
-                  <option value="穿肠刀">穿肠刀</option>
-                  <option value="折刀">折刀</option>
-                </optgroup>
-                <optgroup label="手套">
-                  <option value="不限_手套">全部手套</option>
-                  <option value="运动手套">运动手套</option>
-                  <option value="专业手套">专业手套</option>
-                  <option value="摩托手套">摩托手套</option>
-                  <option value="驾驶手套">驾驶手套</option>
-                  <option value="手部束带">手部束带</option>
-                  <option value="狂牙手套">狂牙手套</option>
-                  <option value="九头蛇手套">九头蛇手套</option>
-                  <option value="血猎手套">血猎手套</option>
-                </optgroup>
-                <optgroup label="步枪">
-                  <option value="不限_步枪">全部步枪</option>
-                  <option value="AK-47">AK-47</option>
-                  <option value="AWP">AWP</option>
-                  <option value="M4A1 消音版">M4A1 消音版</option>
-                  <option value="M4A4">M4A4</option>
-                </optgroup>
-                <optgroup label="手枪">
-                  <option value="不限_手枪">全部手枪</option>
-                  <option value="沙漠之鹰">沙漠之鹰</option>
-                  <option value="USP 消音版">USP 消音版</option>
-                  <option value="格洛克 18 型">格洛克 18 型</option>
-                </optgroup>
-                <optgroup label="微型冲锋枪">
-                  <option value="不限_微型冲锋枪">全部微冲</option>
-                  <option value="MP9">MP9</option>
-                  <option value="MAC-10">MAC-10</option>
-                  <option value="UMP-45">UMP-45</option>
-                  <option value="P90">P90</option>
-                </optgroup>
-                <optgroup label="重武器">
-                  <option value="不限_霰弹枪">霰弹枪</option>
-                  <option value="不限_机枪">机枪</option>
-                </optgroup>
-                <optgroup label="其他">
-                  <option value="不限_武器箱">武器箱</option>
-                  <option value="印花">印花</option>
-                  <option value="音乐盒">音乐盒</option>
-                  <option value="收藏品">收藏品</option>
-                  <option value="探员">探员</option>
-                </optgroup>
-              </select>
+              <div class="rank-cat-checks" data-group="type">
+                <label class="rank-cat-check"><input type="checkbox" class="rank-any-check" id="rank-f-type-any" checked> 不限</label>
+              </div>
+              <div class="rank-type-grid">
+                <div class="rank-type-col">
+                  <span class="rank-type-head">🔪 匕首</span>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-knife-all" data-type-cat="不限_匕首"> 全部匕首</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-bfk"> 蝴蝶刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-m9"> M9 刺刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-karambit"> 爪子刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-kukri"> 廓尔喀刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-skeleton"> 骷髅匕首</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-bayonet"> 刺刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-talon"> 锯齿爪刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-nomad"> 流浪者匕首</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-flip"> 折叠刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-stiletto"> 短剑</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-seal"> 海豹短刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-bear"> 熊刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-huntsman"> 猎杀者匕首</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-paracord"> 系绳匕首</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-survival"> 求生匕首</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-gut"> 弯刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-shadow"> 暗影双匕</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-bowie"> 鲍伊猎刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-gut-knife"> 穿肠刀</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-navaja"> 折刀</label>
+                </div>
+                <div class="rank-type-col">
+                  <span class="rank-type-head">🧤 手套</span>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-glove-all" data-type-cat="不限_手套"> 全部手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-sport"> 运动手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-specialist"> 专业手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-moto"> 摩托手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-driver"> 驾驶手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-handwrap"> 手部束带</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-brokenfang"> 狂牙手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-hydra"> 九头蛇手套</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-bloodhound"> 血猎手套</label>
+                </div>
+                <div class="rank-type-col">
+                  <span class="rank-type-head">🔫 步枪</span>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-rifle-all" data-type-cat="不限_步枪"> 全部步枪</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-ak47"> AK-47</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-awp"> AWP</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-m4a1s"> M4A1 消音版</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-m4a4"> M4A4</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-aug"> AUG</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-sg553"> SG 553</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-famas"> 法玛斯</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-galil"> 加利尔 AR</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-scout"> SSG 08</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-scar20"> SCAR-20</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-g3sg1"> G3SG1</label>
+                </div>
+                <div class="rank-type-col">
+                  <span class="rank-type-head">🔫 手枪</span>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-pistol-all" data-type-cat="不限_手枪"> 全部手枪</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-deagle"> 沙漠之鹰</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-usps"> USP 消音版</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-glock"> 格洛克 18 型</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-p2000"> P2000</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-p250"> P250</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-fn57"> FN57</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-revolver"> R8 左轮手枪</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-tec9"> Tec-9</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-dualies"> 双持贝瑞塔</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-cz75"> CZ75 自动手枪</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-taser"> 电击枪</label>
+                </div>
+                <div class="rank-type-col">
+                  <span class="rank-type-head">🔫 微冲+重武</span>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-smg-all" data-type-cat="不限_微型冲锋枪"> 全部微冲</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-mp9"> MP9</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-mac10"> MAC-10</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-ump45"> UMP-45</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-p90"> P90</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-mp7"> MP7</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-bizon"> PP-野牛</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-mp5sd"> MP5-SD</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-xm1014"> XM1014</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-mag7"> MAG-7</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-sawedoff"> 截短霰弹枪</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-nova"> 新星</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-m249"> M249</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-negev"> 内格夫</label>
+                </div>
+                <div class="rank-type-col">
+                  <span class="rank-type-head">📦 其他</span>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-case" data-type-cat="不限_武器箱"> 武器箱</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-music"> 音乐盒</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-sticker"> 印花</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-tool"> 工具</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-collection"> 收藏品</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-patch"> 布章</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-pass"> 通行证</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-agent-all" data-type-cat="不限_探员"> 全部探员</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-agent-ct"> 反恐精英</label>
+                  <label class="rank-cat-check"><input type="checkbox" id="rank-f-type-agent-t"> 恐怖分子</label>
+                </div>
+              </div>
             </div>
             <!-- 品质 -->
             <div class="rank-filter-group">

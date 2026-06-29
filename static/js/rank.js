@@ -27,7 +27,7 @@ let rankAdvFilter = {
   time: "1d",          // 时间范围
   order: "desc",       // desc | asc
   categories: ["normal"], // 类别
-  type: "",            // 类型
+  type: [],            // 类型 (多选)
   quality: [],         // 品质
   wear: [],            // 磨损
 };
@@ -87,9 +87,9 @@ function getRankFilter() {
     if (rankAdvFilter.categories.length > 0) {
       extra["类别"] = rankAdvFilter.categories;
     }
-    // 类型
-    if (rankAdvFilter.type) {
-      extra["类型"] = [rankAdvFilter.type];
+    // 类型 (多选)
+    if (rankAdvFilter.type.length > 0) {
+      extra["类型"] = rankAdvFilter.type;
     }
     // 品质
     if (rankAdvFilter.quality.length > 0) {
@@ -185,7 +185,7 @@ document.getElementById("rank-tabs").addEventListener("click", (e) => {
     show($subtabs);
     rankSubTab = "price_up_rate";
     rankTime = "1d";
-    rankAdvFilter = { sell_min: 2, sell_max: null, buy_min: null, buy_max: null, sell_num_min: null, sell_num_max: null, time: "1d", order: "desc", categories: ["normal"], type: "", quality: [], wear: [] };
+    rankAdvFilter = { sell_min: 2, sell_max: null, buy_min: null, buy_max: null, sell_num_min: 100, sell_num_max: null, time: "1d", order: "desc", categories: ["normal"], type: [], quality: [], wear: [] };
     rankAdvActive = true;
     updateFilterBtnState();
     $rankTimeSelect.value = "1d";
@@ -262,7 +262,14 @@ function openRankFilter() {
   document.getElementById("rank-f-sell-num-max").value  = f.sell_num_max ?? "";
   document.getElementById("rank-f-time").value          = f.time;
   document.getElementById("rank-f-order").value         = f.order;
-  document.getElementById("rank-f-type").value          = f.type || "";
+  // 类型
+  const types = f.type || [];
+  const anyChecked = types.length === 0;
+  document.getElementById("rank-f-type-any").checked = anyChecked;
+  Object.entries(RANK_TYPE_MAP).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = types.includes(val);
+  });
   // 品类
   const cats = f.categories || ["normal"];
   document.getElementById("rank-f-cat-normal").checked          = cats.includes("normal");
@@ -311,7 +318,10 @@ function applyRankFilter() {
   rankAdvFilter.sell_num_max  = g("rank-f-sell-num-max") !== "" ? parseInt(g("rank-f-sell-num-max")) : null;
   rankAdvFilter.time          = g("rank-f-time");
   rankAdvFilter.order         = g("rank-f-order");
-  rankAdvFilter.type          = g("rank-f-type");
+  // 类型 (多选)
+  rankAdvFilter.type = Object.entries(RANK_TYPE_MAP)
+    .filter(([id]) => document.getElementById(id)?.checked)
+    .map(([, val]) => val);
   rankAdvFilter.categories    = readChecked("rank-f-cat-", { "normal":"normal", "strange":"strange", "souvenir":"souvenir", "unusual":"unusual", "unusual-strange":"unusual_strange" });
   rankAdvFilter.quality       = readChecked("rank-f-qual-", { "covert":"违禁", "classified":"隐秘", "restricted":"保密", "mil":"受限", "industrial":"军规级", "consumer":"工业级" });
   rankAdvFilter.wear          = readChecked("rank-f-wear-", { "fn":"崭新出厂", "mw":"略有磨损", "ft":"久经沙场", "ww":"破损不堪", "bs":"战痕累累" });
@@ -323,7 +333,7 @@ function applyRankFilter() {
     f.buy_min != null || f.buy_max != null ||
     (f.sell_num_min != null && f.sell_num_min !== 100) || f.sell_num_max != null ||
     f.order !== "desc" || !isDefaultCats ||
-    f.type !== "" || f.quality.length > 0 || f.wear.length > 0
+    f.type.length > 0 || f.quality.length > 0 || f.wear.length > 0
   );
 
   // 同步高级筛选的时间到快捷时间下拉框，关闭弹窗后保持一致
@@ -345,14 +355,15 @@ function resetRankFilter() {
   document.getElementById("rank-f-sell-num-max").value  = "";
   document.getElementById("rank-f-time").value          = rankTime;
   document.getElementById("rank-f-order").value         = "desc";
-  document.getElementById("rank-f-type").value          = "";
+  document.getElementById("rank-f-type-any").checked = true;
+  Object.keys(RANK_TYPE_MAP).forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   document.querySelectorAll("#rank-filter-modal .rank-cat-check input[type=checkbox]").forEach(cb => {
     cb.checked = cb.id === "rank-f-cat-normal";
   });
   document.querySelectorAll("#rank-filter-modal input[id^='rank-f-qual-'], #rank-filter-modal input[id^='rank-f-wear-']").forEach(cb => { cb.checked = false; });
   document.getElementById("rank-f-qual-any").checked = true;
   document.getElementById("rank-f-wear-any").checked = true;
-  rankAdvFilter = { sell_min: 2, sell_max: null, buy_min: null, buy_max: null, sell_num_min: null, sell_num_max: null, time: rankTime, order: "desc", categories: ["normal"], type: "", quality: [], wear: [] };
+  rankAdvFilter = { sell_min: 2, sell_max: null, buy_min: null, buy_max: null, sell_num_min: 100, sell_num_max: null, time: rankTime, order: "desc", categories: ["normal"], type: [], quality: [], wear: [] };
   rankAdvActive = false;
   updateFilterBtnState();
   closeRankFilter();
@@ -369,6 +380,66 @@ $rankFilterClose.addEventListener("click", closeRankFilter);
 $rankFilterCancel.addEventListener("click", closeRankFilter);
 $rankFilterApply.addEventListener("click", applyRankFilter);
 $rankFilterReset.addEventListener("click", resetRankFilter);
+// ── 类型多选 ID → API 值映射 ──
+const RANK_TYPE_MAP = {
+  "rank-f-type-knife-all": "不限_匕首", "rank-f-type-bfk": "蝴蝶刀", "rank-f-type-m9": "M9 刺刀",
+  "rank-f-type-karambit": "爪子刀", "rank-f-type-kukri": "廓尔喀刀", "rank-f-type-skeleton": "骷髅匕首",
+  "rank-f-type-bayonet": "刺刀", "rank-f-type-talon": "锯齿爪刀", "rank-f-type-nomad": "流浪者匕首",
+  "rank-f-type-flip": "折叠刀", "rank-f-type-stiletto": "短剑", "rank-f-type-seal": "海豹短刀",
+  "rank-f-type-bear": "熊刀", "rank-f-type-huntsman": "猎杀者匕首", "rank-f-type-paracord": "系绳匕首",
+  "rank-f-type-survival": "求生匕首", "rank-f-type-gut": "弯刀", "rank-f-type-shadow": "暗影双匕",
+  "rank-f-type-bowie": "鲍伊猎刀", "rank-f-type-gut-knife": "穿肠刀", "rank-f-type-navaja": "折刀",
+  "rank-f-type-glove-all": "不限_手套", "rank-f-type-sport": "运动手套", "rank-f-type-specialist": "专业手套",
+  "rank-f-type-moto": "摩托手套", "rank-f-type-driver": "驾驶手套", "rank-f-type-handwrap": "手部束带",
+  "rank-f-type-brokenfang": "狂牙手套", "rank-f-type-hydra": "九头蛇手套", "rank-f-type-bloodhound": "血猎手套",
+  "rank-f-type-rifle-all": "不限_步枪", "rank-f-type-ak47": "AK-47", "rank-f-type-awp": "AWP",
+  "rank-f-type-m4a1s": "M4A1 消音版", "rank-f-type-m4a4": "M4A4", "rank-f-type-aug": "AUG",
+  "rank-f-type-sg553": "SG 553", "rank-f-type-famas": "法玛斯", "rank-f-type-galil": "加利尔 AR",
+  "rank-f-type-scout": "SSG 08", "rank-f-type-scar20": "SCAR-20", "rank-f-type-g3sg1": "G3SG1",
+  "rank-f-type-pistol-all": "不限_手枪", "rank-f-type-deagle": "沙漠之鹰", "rank-f-type-usps": "USP 消音版",
+  "rank-f-type-glock": "格洛克 18 型", "rank-f-type-p2000": "P2000", "rank-f-type-p250": "P250",
+  "rank-f-type-fn57": "FN57", "rank-f-type-revolver": "R8 左轮手枪", "rank-f-type-tec9": "Tec-9",
+  "rank-f-type-dualies": "双持贝瑞塔", "rank-f-type-cz75": "CZ75 自动手枪", "rank-f-type-taser": "电击枪",
+  "rank-f-type-smg-all": "不限_微型冲锋枪", "rank-f-type-mp9": "MP9", "rank-f-type-mac10": "MAC-10",
+  "rank-f-type-ump45": "UMP-45", "rank-f-type-p90": "P90", "rank-f-type-mp7": "MP7",
+  "rank-f-type-bizon": "PP-野牛", "rank-f-type-mp5sd": "MP5-SD", "rank-f-type-xm1014": "XM1014",
+  "rank-f-type-mag7": "MAG-7", "rank-f-type-sawedoff": "截短霰弹枪", "rank-f-type-nova": "新星",
+  "rank-f-type-m249": "M249", "rank-f-type-negev": "内格夫",
+  "rank-f-type-case": "不限_武器箱", "rank-f-type-music": "音乐盒", "rank-f-type-sticker": "印花",
+  "rank-f-type-tool": "工具", "rank-f-type-collection": "收藏品", "rank-f-type-patch": "布章",
+  "rank-f-type-pass": "通行证", "rank-f-type-agent-all": "不限_探员",
+  "rank-f-type-agent-ct": "反恐精英", "rank-f-type-agent-t": "恐怖分子",
+};
+
+// "全部XX" 勾选 → 自动勾选子项 / 取消亦然
+$rankFilterModal.querySelectorAll("[data-type-cat]").forEach(cb => {
+  cb.addEventListener("change", () => {
+    const prefix = cb.id.replace("all-", "").replace(/-(knife|glove|rifle|pistol)$/, "-");
+    const subs = $rankFilterModal.querySelectorAll(`#rank-f-type-${prefix} input[type=checkbox]:not(.rank-any-check):not([data-type-cat])`);
+    // 由于 grid 布局不在单个 group 内，简化为查找同一列的其他 checkbox
+    const col = cb.closest(".rank-type-col");
+    if (col) {
+      col.querySelectorAll("input[type=checkbox]:not([data-type-cat])").forEach(s => { s.checked = cb.checked; });
+    }
+    if (cb.checked) document.getElementById("rank-f-type-any").checked = false;
+  });
+});
+
+// 子项变更 → 自动更新"全部XX"状态 + "不限"
+$rankFilterModal.querySelectorAll(".rank-type-col input[type=checkbox]:not([data-type-cat])").forEach(cb => {
+  cb.addEventListener("change", () => {
+    if (cb.checked) document.getElementById("rank-f-type-any").checked = false;
+    const col = cb.closest(".rank-type-col");
+    if (col) {
+      const cat = col.querySelector("[data-type-cat]");
+      if (cat) {
+        const subs = col.querySelectorAll("input[type=checkbox]:not([data-type-cat])");
+        cat.checked = Array.from(subs).every(s => s.checked);
+      }
+    }
+  });
+});
+
 // 品质/磨损"不限"互斥逻辑
 $rankFilterModal.querySelectorAll(".rank-cat-checks[data-group]").forEach(group => {
   group.addEventListener("change", (e) => {
@@ -408,14 +479,14 @@ function updateRankThead() {
   } else {
     document.getElementById("rank-thead").innerHTML = `
       <tr>
-        <th style="width:48px;">排行</th>
-        <th>饰品名称</th>
-        <th style="width:88px;">30天走势</th>
-        <th>在售价格</th>
-        <th>求购价格</th>
-        <th>在售数量</th>
-        <th id="rank-chg-header">变动率</th>
-        <th id="rank-vol-header" class="hidden">日成交量</th>
+        <th style="width:3.8%;">排行</th>
+        <th style="width:38.5%;">饰品名称</th>
+        <th style="width:11.5%;">30天走势</th>
+        <th style="width:9.6%;">在售价格</th>
+        <th style="width:9.6%;">求购价格</th>
+        <th style="width:9.6%;">在售数量</th>
+        <th id="rank-chg-header" style="width:9.6%;">变动率</th>
+        <th id="rank-vol-header" class="hidden" style="width:7.7%;">日成交量</th>
       </tr>`;
     updateChgHeader();
     updateVolHeader();
