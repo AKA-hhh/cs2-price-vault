@@ -2,14 +2,30 @@
 //  CHAT
 // ═══════════════════════════════════════════════════════════
 
+const $chatCharCount = document.getElementById("chat-char-count");
+const CHAT_MAX_LENGTH = 2000;
+
 $btnChatSend.addEventListener("click", sendChat);
 $chatInput.addEventListener("keydown", function(e) {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
+$chatInput.addEventListener("input", updateCharCount);
+
+function updateCharCount() {
+  const len = $chatInput.value.length;
+  if ($chatCharCount) {
+    $chatCharCount.textContent = `${len}/${CHAT_MAX_LENGTH}`;
+    $chatCharCount.className = "chat-char-count" + (len > CHAT_MAX_LENGTH * 0.9 ? " warn" : "");
+  }
+}
 
 async function sendChat() {
   const question = $chatInput.value.trim();
   if (!question || isChatting || !activeAnalysisId) return;
+  if (question.length > CHAT_MAX_LENGTH) {
+    showToast(`输入过长（${question.length}字），请精简到${CHAT_MAX_LENGTH}字以内`);
+    return;
+  }
 
   isChatting = true;
   $btnChatSend.disabled = true;
@@ -17,6 +33,7 @@ async function sendChat() {
 
   appendMsg("user", question);
   $chatInput.value = "";
+  updateCharCount();
 
   // 创建空的 AI 回复气泡，用于流式填充
   const aiEl = appendMsg("assistant", "");

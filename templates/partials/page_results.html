@@ -55,8 +55,9 @@
             <div class="panel-body chat-body">
               <div id="chat-messages" class="chat-messages"></div>
               <div class="chat-input-row">
-                <textarea id="chat-input" rows="2"
-                          placeholder="输入问题…"></textarea>
+                <textarea id="chat-input" rows="2" maxlength="2000"
+                          placeholder="输入问题…（上限2000字）"></textarea>
+                <span id="chat-char-count" class="chat-char-count"></span>
                 <button id="btn-chat-send" class="btn-send" title="发送 (Enter)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9"/></svg>
                 </button>

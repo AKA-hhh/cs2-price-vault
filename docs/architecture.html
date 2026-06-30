@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS2 Price Vault — 架构文档</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d2991d;
+    --red: #f85149;
+    --purple: #a371f7;
+    --code-bg: #1a1f2b;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 16px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 80px 0 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+  }
+  .hero h1 { font-size: 42px; font-weight: 700; letter-spacing: -0.5px; }
+  .hero .sub { font-size: 18px; color: var(--text2); margin-top: 12px; }
+  .hero .badges { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .hero .badge {
+    padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+  }
+
+  /* ── Nav dots ── */
+  .toc {
+    position: sticky; top: 0; z-index: 10; background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 12px 0; overflow-x: auto; white-space: nowrap;
+  }
+  .toc a {
+    color: var(--text2); text-decoration: none; margin-right: 24px; font-size: 14px;
+    transition: color .2s; font-weight: 500;
+  }
+  .toc a:hover, .toc a.active { color: var(--accent); }
+
+  /* ── Sections ── */
+  section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  h2 { font-size: 28px; margin-bottom: 8px; }
+  h2 .num { color: var(--accent); font-size: 20px; margin-right: 8px; }
+  h3 { font-size: 20px; margin: 32px 0 12px; color: var(--accent); }
+  p { margin-bottom: 16px; color: var(--text2); }
+  strong { color: var(--text); }
+
+  /* ── Cards ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px;
+  }
+  .card h4 { font-size: 16px; margin-bottom: 8px; }
+  .card p { font-size: 14px; margin: 0; }
+  .card .icon { font-size: 24px; margin-bottom: 8px; }
+
+  /* ── Code ── */
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 24px; overflow-x: auto; font-size: 13px; line-height: 1.7;
+    margin: 16px 0;
+  }
+  code { font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace; }
+  .hl { color: var(--accent); }
+  .hl2 { color: var(--green); }
+  .hl3 { color: var(--orange); }
+  .hl4 { color: var(--purple); }
+  .co { color: #6e7681; }
+
+  /* ── Flow diagram ── */
+  .flow {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 32px; margin: 16px 0; font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
+    font-size: 13px; line-height: 2; white-space: pre; overflow-x: auto;
+  }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text); font-weight: 600; background: var(--bg2); }
+  td { color: var(--text2); }
+
+  /* ── Callout ── */
+  .callout {
+    border-left: 3px solid var(--accent); padding: 16px 20px; margin: 24px 0;
+    background: var(--bg2); border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 14px; color: var(--text2);
+  }
+  .callout.warn { border-color: var(--orange); }
+  .callout.good { border-color: var(--green); }
+
+  /* ── Footer ── */
+  footer { text-align: center; padding: 40px 0; color: var(--text2); font-size: 13px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 28px; }
+    .toc a { margin-right: 14px; font-size: 12px; }
+    pre, .flow { padding: 14px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ HERO ════════════════ -->
+<div class="hero">
+  <h1>CS2 Price Vault</h1>
+  <p class="sub">数字藏品画廊 × 精密金融工具 — 架构设计与实现详解</p>
+  <div class="badges">
+    <span class="badge">Python 3.10+</span>
+    <span class="badge">Flask Blueprint</span>
+    <span class="badge">Vanilla JS ES6</span>
+    <span class="badge">DeepSeek AI</span>
+    <span class="badge">csqaq.com API</span>
+    <span class="badge">Steam Inventory</span>
+  </div>
+</div>
+
+<!-- ════════════════ TOC ════════════════ -->
+<nav class="toc">
+  <div class="container">
+    <a href="#design">设计理念</a>
+    <a href="#architecture">系统架构</a>
+    <a href="#backend">后端设计</a>
+    <a href="#frontend">前端设计</a>
+    <a href="#dataflow">数据流</a>
+    <a href="#persistence">持久化策略</a>
+    <a href="#decisions">关键决策</a>
+    <a href="#modules">模块地图</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ════════════════ 1. DESIGN ════════════════ -->
+<section id="design">
+  <h2><span class="num">01</span>设计理念</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="icon">🏠</div>
+      <h4>桌面应用体验，Web 技术栈</h4>
+      <p>单页应用 (SPA)，<code>python app.py</code> 一键启动后自动打开浏览器。无构建步骤、无 npm、无打包 — 开箱即用。</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧩</div>
+      <h4>模块化拆分，按功能解耦</h4>
+      <p>后端 11 个 Blueprint + 前端 13 个 JS/13 个 CSS 文件，每个模块只负责一件事。新增功能只需加文件、注册路由、引入脚本。</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧠</div>
+      <h4>双轨分析：规则引擎 + AI</h4>
+      <p>规则引擎用加权评分（-100~100）给出确定性结论；DeepSeek AI 做语义理解和深度推理。两者互为补充，即使不配 API Key 也能用。</p>
+    </div>
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h4>缓存优先，静默更新</h4>
+      <p>所有数据都先展示缓存 → 后台刷新。用户感知不到等待，页面瞬间可交互。后端 TTL 机制避免频繁调用外部 API。</p>
+    </div>
+  </div>
+
+  <p>项目最初为个人投资分析工具开发，核心诉求是<strong>低延迟、高可用、易扩展</strong>。选择 Flask + Vanilla JS 而非 React/Next.js，原因是桌面应用的维护者通常是个人开发者，技术栈越薄越好——不引入前端框架意味着零依赖升级风险。</p>
+</section>
+
+<!-- ════════════════ 2. ARCHITECTURE ════════════════ -->
+<section id="architecture">
+  <h2><span class="num">02</span>系统架构</h2>
+
+  <div class="flow">
+┌──────────────────────────────────────────────────────────┐
+│                       <span class="hl">Browser (SPA)</span>                        │
+│  ┌─────────┬──────────┬──────────┬──────────┬─────────┐ │
+│  │Dashboard│ Watchlist│ Portfolio│ Inventory│  Rank   │ │
+│  ├─────────┴──────────┴──────────┴──────────┴─────────┤ │
+│  │          Analysis Results + AI Chat           │ │
+│  ├──────────────────────────────────────────────────────┤ │
+│  │  core.js → DOM refs / global state / utils            │ │
+│  │  12 other JS modules, loaded in dependency order      │ │
+│  └──────────────────────────────────────────────────────┘ │
+└──────────────┬───────────────────┬───────────────────────┘
+               │  HTTP/JSON        │  SSE (chat/stream)
+               ▼                   ▼
+┌──────────────────────────────────────────────────────────┐
+│                   <span class="hl2">Flask Application</span>                      │
+│  ┌──────────┬──────────┬──────────┬──────────┬─────────┐ │
+│  │  search  │watchlist │portfolio │inventory │  rank   │ │
+│  ├──────────┼──────────┼──────────┼──────────┼─────────┤ │
+│  │ analyze  │  chat    │sessions  │settings  │knowledge│ │
+│  ├──────────┴──────────┴──────────┴──────────┴─────────┤ │
+│  │  shared.py — 全局状态 + 跨模块工具函数                │ │
+│  └──────────────────────────────────────────────────────┘ │
+└──────┬──────────────────────┬────────────────────────────┘
+       │                      │
+       ▼                      ▼
+┌──────────────┐    ┌──────────────────┐
+│   <span class="hl3">core/</span>       │    │   <span class="hl4">External APIs</span>    │
+│  config      │    │  csqaq.com       │
+│  api_client  │◄───│  (K线/价格/详情)  │
+│  indicators  │    │                  │
+│  recommend.  │    │  DeepSeek API    │
+│  ai_analysis │◄───│  (分析 + 追问)    │
+│  prompts     │    │                  │
+│  steam_client│◄───│  Steam Web API   │
+│  id_map      │    │  (公开库存)       │
+│  visualizat. │    └──────────────────┘
+└──────────────┘
+  </div>
+</section>
+
+<!-- ════════════════ 3. BACKEND ════════════════ -->
+<section id="backend">
+  <h2><span class="num">03</span>后端设计</h2>
+
+  <h3>Blueprint 模块化</h3>
+  <p>Flask 的 Blueprint 机制让每个功能域独立为一个模块，拥有自己的 URL 前缀和请求处理。所有蓝图通过 <code>shared.py</code> 访问全局状态，而非直接导入变量（避免模块加载时捕获旧引用）。</p>
+
+  <table>
+    <tr><th>Blueprint</th><th>文件</th><th>核心端点</th><th>职责</th></tr>
+    <tr><td>search</td><td>routes/search.py</td><td>/api/search, /api/market/overview</td><td>模糊搜索 + 大盘数据</td></tr>
+    <tr><td>watchlist</td><td>routes/watchlist.py</td><td>/api/watchlist/*</td><td>自选 CRUD + 刷新 + 走势图</td></tr>
+    <tr><td>portfolio</td><td>routes/portfolio.py</td><td>/api/portfolio/*</td><td>持仓管理 + AI 建议</td></tr>
+    <tr><td>inventory</td><td>routes/inventory.py</td><td>/api/inventory/*</td><td>Steam 库存拉取/价格/走势图</td></tr>
+    <tr><td>rank</td><td>routes/rank.py</td><td>/api/rank, /api/rank/series</td><td>价格榜/成交榜/热门系列</td></tr>
+    <tr><td>analyze</td><td>routes/analyze.py</td><td>/api/analyze</td><td>核心：指标+评分+AI+图表</td></tr>
+    <tr><td>chat</td><td>routes/chat.py</td><td>/api/chat, /api/chat/stream</td><td>同步 + SSE 流式追问</td></tr>
+    <tr><td>sessions</td><td>routes/sessions.py</td><td>/api/sessions/*</td><td>分析历史管理 (最多50条)</td></tr>
+    <tr><td>settings</td><td>routes/settings.py</td><td>/api/settings/*</td><td>API Key + UI偏好 + ID映射</td></tr>
+    <tr><td>knowledge</td><td>routes/knowledge.py</td><td>/api/knowledge/*</td><td>事件知识库 CRUD</td></tr>
+    <tr><td>prompts</td><td>routes/prompts.py</td><td>/api/prompts/*</td><td>提示词模板管理 (4类)</td></tr>
+  </table>
+
+  <h3>核心层 (core/) — 纯业务逻辑</h3>
+  <p>core/ 包不依赖 Flask，不处理 HTTP 请求。它是纯 Python 业务逻辑，可以被任何框架调用。</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>config.py</h4>
+      <p>dotenv 加载配置 → 常量（API keys、周期预设、超时、TTL）。设置页修改后热更新内存值。</p>
+    </div>
+    <div class="card">
+      <h4>api_client.py</h4>
+      <p>csqaq.com 封装：K线优先 → chart 回退。内置 429 指数退避重试 (1s/2s/4s)，请求间隔 1s。</p>
+    </div>
+    <div class="card">
+      <h4>indicators.py</h4>
+      <p>pandas 计算 MA5/10/20/60、RSI(14)、MACD、布林带、KDJ、动量、波动率。输入 OHLCV DataFrame。</p>
+    </div>
+    <div class="card">
+      <h4>recommendation.py</h4>
+      <p>7 维度加权评分：趋势(25)、动量(20)、超买超卖(15)、成交量(10)、波动率(10)、支撑阻力(10)、市场情绪(10)。输出 -100~100 分 + buy/hold/sell。</p>
+    </div>
+    <div class="card">
+      <h4>ai_analysis.py</h4>
+      <p>DeepSeek Chat Completions：全量指标数据发送，max_tokens=24576。system prompt 从 PromptManager 模板读取，content 必须是纯字符串。</p>
+    </div>
+    <div class="card">
+      <h4>prompts.py</h4>
+      <p>PromptManager 单例：4 类模板（analysis_system / analysis_instruction / chat_system / portfolio_advice），每类多模板，下拉切换激活，JSON 持久化。</p>
+    </div>
+  </div>
+
+  <h3>shared.py — 共享状态中心</h3>
+  <p>这是整个后端的中枢：</p>
+  <div class="flow">
+<span class="co"># 可变状态 — 所有蓝图通过 import shared 访问</span>
+<span class="hl">name_to_id</span> / <span class="hl">market_to_id</span> / <span class="hl">id_to_name</span>    <span class="co"># ID 映射 (启动加载, 运行时热更新)</span>
+<span class="hl">_inventory_cache</span>                          <span class="co"># SteamID64 → {data, timestamp, sparklines}</span>
+<span class="hl">_wl_sparklines</span>                            <span class="co"># 自选走势图缓存 (item_id → [prices])</span>
+<span class="hl">user_sessions</span>                             <span class="co"># 分析历史 (aid → analysis)</span>
+
+<span class="co"># 跨模块辅助函数</span>
+<span class="hl2">_add_chinese_names</span>()     <span class="co"># 为库存物品补充中文名 (id_map 匹配)</span>
+<span class="hl2">_build_chat_messages</span>()   <span class="co"># 构建 AI 对话上下文</span>
+<span class="hl2">_fig_to_base64</span>()         <span class="co"># matplotlib Figure → PNG base64</span>
+<span class="hl2">_write_env_value</span>()       <span class="co"># 运行时写入 .env + 更新 config 模块</span>
+<span class="hl2">match_knowledge</span>()        <span class="co"># 关键词匹配关联知识库条目</span>
+  </div>
+
+  <div class="callout warn">
+    <strong>⚠️ 注意：</strong>蓝图必须用 <code>import shared</code> 而非 <code>from shared import xxx</code>。后者会在导入时捕获变量的引用，后续 <code>init_shared_state()</code> 修改全局变量时，已导入的模块看到的仍是旧值。
+  </div>
+</section>
+
+<!-- ════════════════ 4. FRONTEND ════════════════ -->
+<section id="frontend">
+  <h2><span class="num">04</span>前端设计</h2>
+
+  <h3>架构分层</h3>
+  <div class="flow">
+<span class="co">┌─ HTML 层 ─────────────────────────────────────┐</span>
+│  index.html (Jinja2 骨架)                       │
+│  └─ {% include %} 13 个 partials/*.html          │
+<span class="co">├─ CSS 层 ──────────────────────────────────────┤</span>
+│  core.css    → 设计 token + 基础样式 + 主题       │
+│  12 个功能 CSS → 各自页面/组件的样式              │
+│  responsive.css → 断点适配                       │
+<span class="co">├─ JS 层 ───────────────────────────────────────┤</span>
+│  core.js     → DOM refs + 全局状态 + 工具函数     │
+│  12 个功能 JS → 按 &lt;script&gt; 加载顺序 = 依赖顺序  │
+│  init.js     → 入口：定时器 + 图片查看器 + 启动    │
+<span class="co">└──────────────────────────────────────────────┘</span>
+  </div>
+
+  <h3>JS 模块依赖关系</h3>
+  <div class="flow">
+<span class="hl">core.js</span>        定义 DOM 引用、全局状态、工具函数（被所有模块依赖）
+  ├─ <span class="hl2">search.js</span>   搜索 + 周期选择器 + 历史列表渲染
+  ├─ <span class="hl2">analysis.js</span> 页面导航 + 分析结果渲染 + 仪表盘 + 信号徽章
+  ├─ <span class="hl2">chat.js</span>      AI 对话：发送/接收/typewriter 效果/事件绑定
+  ├─ <span class="hl2">settings.js</span> 设置抽屉：主题/强调色/API Key/模型/ID Map
+  ├─ <span class="hl2">kb.js</span>       事件知识库：列表+分页+CRUD 弹窗
+  ├─ <span class="hl2">prompts.js</span>  提示词管理：卡片渲染+模板管理器弹窗
+  ├─ <span class="hl2">dashboard.js</span> 大盘仪表盘：指数列表+涨跌榜
+  ├─ <span class="hl2">watchlist.js</span> 自选列表：表格渲染+走势图+5min 自动刷新
+  ├─ <span class="hl2">inventory.js</span> Steam 库存：获取库存+价格+成本编辑+排序+走势图
+  ├─ <span class="hl2">rank.js</span>     排行榜：价格榜/成交榜+高级筛选弹窗
+  └─ <span class="hl4">init.js</span>      自动刷新定时器+图片查看器+页面初始化入口
+  </div>
+
+  <div class="callout good">
+    <strong>为什么不用 React/Vue？</strong> 桌面应用的维护者是个人开发者。Vanilla JS 零依赖，不会有框架升级导致的 breaking change。模块按文件拆分，每个 ~200-600 行，通过 <code>&lt;script&gt;</code> 标签加载顺序隐式管理依赖——简单直接，不需要打包器。CSS 同理，原生 Custom Properties 实现主题切换，13 个 CSS 文件各管各的，不会相互干扰。
+  </div>
+
+  <h3>全局状态管理 (core.js)</h3>
+  <div class="flow">
+<span class="co">// DOM 引用缓存 — 所有模块共用，避免重复 querySelector</span>
+<span class="hl">const $dashboard</span>      = document.getElementById("dashboard");
+<span class="hl">const $watchlistPage</span>  = document.getElementById("watchlist-page");
+<span class="hl">const $inventoryPage</span>  = document.getElementById("inventory-page");
+<span class="hl">const $resultsContainer</span> = document.getElementById("results-container");
+<span class="hl">const $loadingScreen</span>  = document.getElementById("loading-screen");
+<span class="co">// ... 共 ~40 个 DOM 引用</span>
+
+<span class="co">// 全局状态</span>
+<span class="hl">let activeAnalysisId</span> = null;    <span class="co">// 当前活跃的分析 ID</span>
+<span class="hl">let autoRefreshTimer</span> = null;    <span class="co">// 自动刷新定时器</span>
+
+<span class="co">// 工具函数</span>
+<span class="hl2">show</span>($el) / <span class="hl2">hide</span>($el)           <span class="co">// 显示/隐藏 (classList add/remove "hidden")</span>
+<span class="hl2">fmtNum</span>(n)                    <span class="co">// 数字格式化 (¥12,345.67)</span>
+<span class="hl2">escapeHTML</span>(s)                 <span class="co">// HTML 转义防 XSS</span>
+<span class="hl2">typewriterEffect</span>(el, text)   <span class="co">// 打字机效果渲染 AI 回复</span>
+<span class="hl2">showConfirmDialog</span>(msg)       <span class="co">// 确认弹窗 (返回 Promise)</span>
+<span class="hl2">showToast</span>(msg)               <span class="co">// Toast 提示</span>
+  </div>
+</section>
+
+<!-- ════════════════ 5. DATA FLOW ════════════════ -->
+<section id="dataflow">
+  <h2><span class="num">05</span>核心数据流</h2>
+
+  <h3>5.1 分析流程 — 最重要的链路</h3>
+  <div class="flow">
+<span class="co">用户点击「开始分析」</span>
+  │
+  ▼
+<span class="hl">1. POST /api/search</span>
+  │  <span class="co">id_map.search_item(keyword)</span>
+  │  → 子串匹配 (快速) → difflib 近似匹配 (补充)
+  │  → 返回匹配列表，用户挑选
+  ▼
+<span class="hl">2. POST /api/analyze</span>  {item_id, period_days}
+  │
+  ├─ <span class="hl2">api_client.get_item_price_history(item_id, days)</span>
+  │   → csqaq.com K线端点 /api/v1/info/simple/chartAll
+  │   → 失败回退 chart 端点
+  │   → 429 指数退避重试 (1s → 2s → 4s)
+  │   → 返回 OHLCV DataFrame
+  │
+  ├─ <span class="hl2">indicators.compute_indicators(df)</span>
+  │   → MA5/10/20/60, RSI(14), MACD, 布林带, KDJ, 动量, 波动率
+  │   → 返回 {df, indicators_dict}
+  │
+  ├─ <span class="hl2">recommendation.generate_recommendation(indicators, df)</span>
+  │   → 7维度加权评分 (-100~100)
+  │   → 输出: {score, action: buy|hold|sell, detail: {...}}
+  │
+  ├─ <span class="hl2">ai_analysis.get_ai_analysis(df, name, days, recommendation)</span>
+  │   → 构建 prompt (system + instruction 从 PromptManager 模板读取)
+  │   → DeepSeek API → 全量指标 + 规则评分作为上下文
+  │   → 返回 AI 分析文本
+  │
+  ├─ <span class="hl2">visualization.plot_analysis(df, indicators, recommendation)</span>
+  │   → matplotlib (默认) 或 Plotly (设置页切换)
+  │   → 4 子图: 价格+布林带 | RSI | MACD | KDJ
+  │   → → base64 PNG + 保存到 history/{aid}.png
+  │
+  └─ 返回 → 前端 renderResults() 渲染图表+建议+AI分析+对话
+  │
+  ▼
+<span class="hl">3. 追问 (可选)</span>
+  │  POST /api/chat        → 同步 (完整响应)
+  │  POST /api/chat/stream  → SSE 流式 (逐 token 打字机效果)
+  │  → 对话历史追加到 analysis.messages[]
+  │  → 持久化到 history/{aid}.json
+  </div>
+
+  <h3>5.2 库存流程</h3>
+  <div class="flow">
+<span class="co">用户点击「库存」标签</span>
+  │
+  ▼
+<span class="hl">loadCachedInventory()</span>                          <span class="co">← 第1步：展示缓存</span>
+  │  GET /api/inventory/cached?steam_id=xxx
+  │  → 返回 inventory.json 中的 items + sparklines
+  │  → renderInventory() 立即渲染表格
+  │  → applyCachedSparklines() 走势图秒出
+  │
+  ▼
+<span class="hl">fetchInventory()</span>  {force: false}               <span class="co">← 第2步：检查更新</span>
+  │  POST /api/inventory/fetch
+  │  → TTL &lt; 300s 命中缓存 → 跳过 (不调 Steam API)
+  │  → TTL &gt; 300s → get_steam_inventory(steam_id)
+  │  → 保留旧价格 → _add_chinese_names() → 持久化
+  │
+  ▼
+<span class="hl">fetchInventoryPrices()</span>                          <span class="co">← 第3步：刷新价格+走势图</span>
+  │  POST /api/inventory/prices
+  │  → csqaq.com 批量价格查询 (去重后分批)
+  │  → 更新 price/buff_price/yyyp_price/steam_price
+  │
+  └─ fetchAllSparklines()                          <span class="co">← 第4步：更新走势图</span>
+     → POST /api/inventory/sparklines
+     → 逐条请求 csqaq 7天价格历史
+     → drawSparklineSvg() → 替换 DOM
+  </div>
+
+  <h3>5.3 自选流程</h3>
+  <div class="flow">
+<span class="co">页面启动 init()</span>
+  │  loadWatchlist()
+  │  GET /api/watchlist → {items, sparklines}
+  │
+<span class="co">用户打开自选页</span>
+  │  wlCache 命中 → 直接渲染
+  │  applyWlSparkCache() → 走势图秒出 (来自磁盘缓存)
+  │  fetchWlSparklines() → 后台静默拉最新
+  │
+<span class="co">每 5 分钟 (页面可见时)</span>
+  │  POST /api/watchlist/refresh → 逐条 get_item_detail()
+  │  → updateWlCache() → renderWatchlistTable()
+  │  → fetchWlSparklines() → 走势图也更新
+  │
+<span class="co">用户手动点刷新</span>
+  │  同上 + 按钮旋转动画
+  </div>
+</section>
+
+<!-- ════════════════ 6. PERSISTENCE ════════════════ -->
+<section id="persistence">
+  <h2><span class="num">06</span>持久化策略</h2>
+
+  <table>
+    <tr><th>数据</th><th>存储</th><th>格式</th><th>读写时机</th></tr>
+    <tr>
+      <td>ID 映射</td>
+      <td>data/饰品id_*.json</td>
+      <td>{id: name}</td>
+      <td>启动时加载到内存，运行时可通过设置页上传替换并热更新</td>
+    </tr>
+    <tr>
+      <td>自选列表</td>
+      <td>watchlist.json</td>
+      <td>[{id, name, price, ...}]</td>
+      <td>每次 CRUD 操作即时读写</td>
+    </tr>
+    <tr>
+      <td>自选走势图</td>
+      <td>watchlist_sparklines.json</td>
+      <td>{item_id: [prices]}</td>
+      <td>拉取后持久化，启动恢复，打开页面秒渲染</td>
+    </tr>
+    <tr>
+      <td>持仓</td>
+      <td>portfolio.json</td>
+      <td>[{id, name, buy_price, ...}]</td>
+      <td>每次 CRUD 操作即时读写</td>
+    </tr>
+    <tr>
+      <td>库存缓存</td>
+      <td>inventory.json</td>
+      <td>{steam_id: {data, sparklines, ts}}</td>
+      <td>拉取后持久化，TTL=300s，启动恢复</td>
+    </tr>
+    <tr>
+      <td>库存绑定</td>
+      <td>inventory_binding.json</td>
+      <td>{steam_id, raw}</td>
+      <td>绑定/修改时写入</td>
+    </tr>
+    <tr>
+      <td>分析历史</td>
+      <td>history/{aid}.json + .png</td>
+      <td>JSON 记录 + base64 图表</td>
+      <td>分析完成时写入，启动时恢复（最多 50 条）</td>
+    </tr>
+    <tr>
+      <td>提示词模板</td>
+      <td>prompts.json</td>
+      <td>4 类，每类多模板</td>
+      <td>启动加载到 PromptManager 单例，CRUD 即时持久化</td>
+    </tr>
+    <tr>
+      <td>知识库</td>
+      <td>knowledge_base.json</td>
+      <td>[{title, content, tags, date}]</td>
+      <td>CRUD 即时持久化</td>
+    </tr>
+    <tr>
+      <td>UI 设置</td>
+      <td>settings.json</td>
+      <td>{theme, accent, font_size, ...}</td>
+      <td>修改时写入</td>
+    </tr>
+    <tr>
+      <td>API 密钥</td>
+      <td>.env</td>
+      <td>KEY=VALUE</td>
+      <td>设置页修改时写入 + 更新 config 内存值</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>设计原则：</strong>所有持久化用扁平 JSON 文件，不引入数据库。原因：本项目是桌面单用户应用，数据量小（几十条自选、几百件库存），JSON 文件的读写足够快，且用户可以直接用文本编辑器查看/修改/备份。
+  </div>
+</section>
+
+<!-- ════════════════ 7. KEY DECISIONS ════════════════ -->
+<section id="decisions">
+  <h2><span class="num">07</span>关键设计决策</h2>
+
+  <h3>7.1 为什么不用数据库？</h3>
+  <p>本项目的所有数据都是<strong>单用户、小数据量</strong>：几十条自选、几百件库存、几十条分析历史。JSON 文件读写的延迟 < 5ms，完全不需要 SQLite 的查询能力。JSON 对人类可读、可备份、可版本控制，维护成本为零。</p>
+
+  <h3>7.2 为什么「缓存优先 + 后台刷新」？</h3>
+  <p>外部 API（Steam、csqaq）的延迟不可控（500ms ~ 5s）。如果等数据回来再渲染，用户看到的是白屏。先展示缓存数据（从本地 JSON 文件读取，通常 < 10ms），用户瞬间就能交互；然后后台拉新数据，静默替换 DOM。这个模式贯穿整个前端——库存、自选、走势图都遵循这个原则。</p>
+
+  <h3>7.3 为什么 5 分钟 TTL？</h3>
+  <p>CS2 饰品价格波动不快（日波动通常 1-5%），Steam 库存也不会频繁变化。5 分钟是「足够实时」和「保护 API 额度」之间的平衡点。TTL 适用缓存，用户手动点按钮 → force=true 绕过。</p>
+
+  <h3>7.4 为什么提示词做成模板系统？</h3>
+  <p>不同用户有不同的分析偏好：有人关注短线，有人关注收藏价值。把 AI 提示词做成可编辑模板，让用户定制角色设定、分析维度、输出格式，而不需要改代码。每类支持多模板切换，即时生效。builtin 模板不可删保证始终有可用模板。</p>
+
+  <h3>7.5 为什么 SSE 而非 WebSocket？</h3>
+  <p>AI 追问只需要<strong>单向推送</strong>（服务端 → 客户端逐 token 发送）。SSE 比 WebSocket 更轻量：不需要握手升级、不需要心跳保活、浏览器原生支持 <code>EventSource</code>。对于这个场景，SSE 是更合适的选择。</p>
+
+  <h3>7.6 为什么规则引擎 + AI 双轨？</h3>
+  <p>规则引擎是确定性的——同样的指标输入永远得到同样的评分。AI 是非确定性的——有语义理解能力但可能不稳定。两者互补：规则引擎给出量化的买卖信号（-100~100 分），AI 给出定性分析和策略讨论。用户可以不配 AI Key，规则引擎独立工作。</p>
+
+  <h3>7.7 前端文件为什么按功能拆分 13 个？</h3>
+  <p>一个 ~4000 行的 JS 文件难以维护。拆成 13 个文件，每个 ~200-600 行，功能边界清晰。CSS 同理。加载顺序就是隐式依赖管理（core.js 最先，其他文件依赖 core.js 定义的变量）。没有打包器意味着没有 source map 问题，浏览器 DevTools 可以直接调试源文件。</p>
+</section>
+
+<!-- ════════════════ 8. MODULE MAP ════════════════ -->
+<section id="modules">
+  <h2><span class="num">08</span>模块地图</h2>
+
+  <div class="flow">
+cs2-price-vault/
+├── <span class="hl">app.py</span>                  Flask 入口 (~85行)
+│                        创建 app → 注册 11 个 Blueprint → 启动
+│
+├── <span class="hl">shared.py</span>              共享状态中心
+│                        全局变量 + 文件IO + 跨模块辅助函数
+│
+├── <span class="hl2">routes/</span>                 Flask Blueprint (11个, 按功能拆分)
+│   ├── search.py         模糊搜索 + 大盘概览
+│   ├── watchlist.py      自选 CRUD + 刷新 + 走势图
+│   ├── portfolio.py      持仓管理 + AI 建议
+│   ├── inventory.py      库存拉取/价格/走势图/绑定/成本
+│   ├── rank.py           排行榜 (价格/成交/热门系列)
+│   ├── analyze.py        核心: 指标→评分→AI→图表 (最重要)
+│   ├── chat.py           AI 追问 (同步 + SSE流式)
+│   ├── sessions.py       分析历史管理
+│   ├── settings.py       设置: API Key/UI/ID Map上传
+│   ├── knowledge.py      知识库 CRUD
+│   └── prompts.py        提示词模板管理
+│
+├── <span class="hl3">core/</span>                  纯业务逻辑 (不依赖 Flask)
+│   ├── config.py         dotenv → 常量 + 热更新
+│   ├── api_client.py     csqaq.com K线/价格API + 429重试
+│   ├── steam_client.py   Steam 公开库存API
+│   ├── indicators.py     pandas 技术指标 (MA/RSI/MACD/布林/KDJ)
+│   ├── recommendation.py 7维度加权评分引擎 (-100~100)
+│   ├── ai_analysis.py    DeepSeek AI 分析 + 多轮对话
+│   ├── prompts.py        PromptManager 模板管理器单例
+│   ├── visualization.py  matplotlib 图表 (Agg后端)
+│   ├── visualization_plotly.py  Plotly 交互式图表
+│   ├── id_map.py         模糊搜索 (子串→difflib)
+│   └── utils.py          磨损度提取/文件名清理
+│
+├── <span class="hl4">templates/</span>              Jinja2 模板
+│   ├── index.html        骨架 ({% include %} 引入 partials)
+│   └── partials/         13个HTML模块 (head/header/sidebar/pages)
+│
+├── <span class="hl">static/</span>
+│   ├── js/               13个JS模块 (按依赖顺序加载)
+│   └── css/              13个CSS模块 (功能独立, 并行加载)
+│
+├── <span class="hl2">data/</span>
+│   └── 饰品id_20260423.json  39000+ 条饰品映射 (~3.9MB)
+│
+├── <span class="co">运行时生成 (gitignore)</span>
+│   ├── inventory.json         库存缓存
+│   ├── watchlist_sparklines.json  自选走势图缓存
+│   ├── watchlist.json         自选列表
+│   ├── portfolio.json         持仓列表
+│   ├── prompts.json           提示词模板
+│   ├── knowledge_base.json    知识库
+│   ├── settings.json          UI 设置
+│   ├── inventory_binding.json Steam 绑定
+│   └── history/               分析历史 (*.json + *.png)
+│
+└── .env.example            环境变量模板
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <p>CS2 Price Vault — 数字藏品画廊 × 精密金融工具</p>
+  <p style="margin-top:4px;">Built with Python · Flask · Vanilla JS · DeepSeek AI</p>
+</footer>
+
+</body>
+</html>

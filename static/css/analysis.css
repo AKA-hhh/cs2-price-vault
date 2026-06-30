@@ -104,6 +104,9 @@
 .chat-input-row textarea:focus { border-color: var(--accent); background: var(--bg-surface); }
 .chat-input-row textarea::placeholder { color: var(--text-tertiary); }
 
+.chat-char-count { font-size: 0.65rem; color: var(--text-tertiary); position: absolute; right: 50px; bottom: 2px; pointer-events: none; transition: color var(--dur-fast); }
+.chat-char-count.warn { color: var(--cinnabar); }
+
 .btn-send { width: 38px; height: 38px; flex-shrink: 0; border: none; border-radius: var(--radius); background: var(--accent); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--dur-fast) var(--ease); }
 .btn-send:hover:not(:disabled) { background: var(--accent-light); box-shadow: var(--shadow-sm); }
 .btn-send:disabled { background: var(--bg-inset); color: var(--text-tertiary); cursor: not-allowed; }
