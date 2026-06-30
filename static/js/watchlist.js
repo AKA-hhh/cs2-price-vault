@@ -18,8 +18,16 @@ async function loadWatchlist() {
   }
   try {
     const r = await fetch("/api/watchlist");
-    const items = await r.json();
+    const d = await r.json();
+    const items = d.items || d;  // 兼容旧格式（纯数组）
     wlCache = items;
+    // 磁盘缓存的走势图 → 秒渲染
+    if (d.sparklines) {
+      for (const [gid, prices] of Object.entries(d.sparklines)) {
+        const svg = drawWlSparkline(prices);
+        if (svg) _wlSparkCache[gid] = svg;
+      }
+    }
     renderWatchlistTable(items);
   } catch (e) { /* ignore */ }
 }
@@ -169,8 +177,11 @@ $wlRefreshBtn.addEventListener("click", async () => {
 });
 
 // ── 30天走势图 ──
+let _wlSparkFetching = false;  // 防并发
+
 async function fetchWlSparklines(ids) {
-  if (!ids || ids.length === 0) return;
+  if (!ids || ids.length === 0 || _wlSparkFetching) return;
+  _wlSparkFetching = true;
   // 总是拉全量最新数据，覆盖缓存保证准确性
   try {
     const r = await fetch("/api/watchlist/sparklines", {
@@ -189,6 +200,7 @@ async function fetchWlSparklines(ids) {
       }
     }
   } catch (e) { /* ignore */ }
+  _wlSparkFetching = false;
 }
 
 function drawWlSparkline(prices) {
@@ -210,3 +222,18 @@ function drawWlSparkline(prices) {
     <polyline points="${points}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
 }
+
+// ═══════════════════════════════════════════════════════════
+//  AUTO-REFRESH — watchlist page only, prices every 5 min
+// ═══════════════════════════════════════════════════════════
+
+setInterval(() => {
+  if (!$watchlistPage.classList.contains("hidden") && wlCache && wlCache.length > 0) {
+    fetch("/api/watchlist/refresh", { method: "POST" })
+      .then(r => r.ok ? r.json() : null)
+      .then(items => {
+        if (items) updateWlCache(items);
+      })
+      .catch(() => {});
+  }
+}, 5 * 60 * 1000);

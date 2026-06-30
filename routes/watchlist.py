@@ -11,7 +11,13 @@ watchlist_bp = Blueprint("watchlist", __name__)
 
 @watchlist_bp.route("/api/watchlist", methods=["GET"])
 def api_watchlist():
-    return jsonify(shared._load_watchlist())
+    items = shared._load_watchlist()
+    # 附带缓存的走势图数据，前端可秒渲染
+    sparklines = dict(shared._wl_sparklines)
+    # 只返回自选列表中物品的走势图
+    wl_ids = {str(w.get("id")) for w in items}
+    filtered = {k: v for k, v in sparklines.items() if k in wl_ids}
+    return jsonify({"items": items, "sparklines": filtered})
 
 
 @watchlist_bp.route("/api/watchlist/refresh", methods=["POST"])
@@ -136,5 +142,10 @@ def api_watchlist_sparklines():
                 time.sleep(0.35)
         except Exception:
             continue
+
+    # 持久化，下次打开页面可秒渲染
+    if result:
+        shared._wl_sparklines.update(result)
+        shared._save_wl_sparklines(shared._wl_sparklines)
 
     return jsonify({"sparklines": result})

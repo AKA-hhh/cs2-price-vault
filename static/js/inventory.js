@@ -148,7 +148,8 @@ function showInventoryPage() {
 
 async function loadCachedInventory() {
   try {
-    const r = await fetch("/api/inventory/cached");
+    const params = invCurrentSteamId ? `?steam_id=${encodeURIComponent(invCurrentSteamId)}` : "";
+    const r = await fetch("/api/inventory/cached" + params);
     const d = await r.json();
     if (d.ok && d.items && d.items.length > 0) {
       invAllItems = d.items;
@@ -163,18 +164,17 @@ async function loadCachedInventory() {
         }
         applyCachedSparklines();
       }
-      // 后台静默刷新（后端 12h TTL，命中缓存时不调 csqaq API）
-      fetchAllSparklines();
       show($btnInvPrices);
       // 不显示时间戳 — 等 fetchInventory 成功后更新
     }
   } catch (e) { /* ignore */ }
 }
 
-$btnInvFetch.addEventListener("click", fetchInventory);
+$btnInvFetch.addEventListener("click", () => fetchInventory({ force: true }));
 $btnInvPrices.addEventListener("click", fetchInventoryPrices);
 
-async function fetchInventory() {
+async function fetchInventory(opts = {}) {
+  const { force = false } = opts;
   if (!invCurrentSteamId) { show($invBindModal); return; }
 
   $invStatus.textContent = "正在获取库存…";
@@ -185,7 +185,7 @@ async function fetchInventory() {
     const r = await fetch("/api/inventory/fetch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ steam_id: invCurrentSteamId, force: true }),
+      body: JSON.stringify({ steam_id: invCurrentSteamId, force }),
     });
     const d = await r.json();
 
@@ -200,7 +200,6 @@ async function fetchInventory() {
     invCosts = d.costs || {};
     renderInventory(invAllItems);
     recalcSummary();
-    fetchAllSparklines();
     $invStatus.textContent = `已获取 ${invAllItems.length} 件物品 (${d.unique_count || 0} 种)，正在查询价格…`;
     $invStatus.className = "inv-status ok";
     $invUpdated.textContent = new Date().toLocaleString("zh-CN");
@@ -598,3 +597,13 @@ async function fetchAllSparklines() {
   } catch (e) { /* ignore */ }
   _sparklineFetching = false;
 }
+
+// ═══════════════════════════════════════════════════════════
+//  AUTO-REFRESH — inventory page only, prices every 5 min
+// ═══════════════════════════════════════════════════════════
+
+setInterval(() => {
+  if (!$inventoryPage.classList.contains("hidden") && invCurrentSteamId && invAllItems.length > 0) {
+    fetchInventoryPrices();
+  }
+}, 5 * 60 * 1000);

@@ -29,6 +29,7 @@ portfolio.json
 watchlist.json
 settings.json
 inventory.json
+watchlist_sparklines.json
 inventory_binding.json
 # knowledge_base.json — 公开历史事件，可以提交
 GIT_GUIDE.md

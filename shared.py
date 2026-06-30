@@ -21,6 +21,7 @@ PORTFOLIO_FILE = os.path.join(BASE_DIR, "portfolio.json")
 KB_FILE = os.path.join(BASE_DIR, "knowledge_base.json")
 SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 INVENTORY_CACHE_FILE = os.path.join(BASE_DIR, "inventory.json")
+WATCHLIST_SPARKLINES_FILE = os.path.join(BASE_DIR, "watchlist_sparklines.json")
 
 os.makedirs(HISTORY_DIR, exist_ok=True)
 
@@ -39,6 +40,9 @@ id_to_name = {}
 
 # 库存缓存 (SteamID64 → {data, timestamp, sparklines?, sparklines_ts?})
 _inventory_cache = {}
+
+# 自选走势图缓存 (item_id → [prices])
+_wl_sparklines = {}
 
 # 分析会话 (桌面单用户)
 user_sessions = {}
@@ -62,6 +66,12 @@ def init_shared_state():
     _inventory_cache = _load_inventory_file()
     if _inventory_cache:
         print(f"已恢复 {len(_inventory_cache)} 条库存缓存")
+
+    # 恢复自选走势图缓存
+    global _wl_sparklines
+    _wl_sparklines = _load_wl_sparklines()
+    if _wl_sparklines:
+        print(f"已恢复 {len(_wl_sparklines)} 条自选走势图缓存")
 
     # 恢复分析历史
     disk_analyses, disk_active = _load_analyses_from_disk()
@@ -114,6 +124,26 @@ def _save_inventory_file(cache):
             slim[sid]["sparklines_ts"] = entry.get("sparklines_ts", 0)
     with open(INVENTORY_CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(slim, f, ensure_ascii=False, indent=2)
+
+
+# ═══════════════════ 自选走势图持久化 ═══════════════════
+
+def _load_wl_sparklines():
+    if not os.path.exists(WATCHLIST_SPARKLINES_FILE):
+        return {}
+    try:
+        with open(WATCHLIST_SPARKLINES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+            return {}
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+
+def _save_wl_sparklines(sparklines):
+    with open(WATCHLIST_SPARKLINES_FILE, "w", encoding="utf-8") as f:
+        json.dump(sparklines, f, ensure_ascii=False, indent=2)
 
 
 def _add_chinese_names(items):
